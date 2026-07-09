@@ -1,0 +1,13 @@
+{
+  "vad": {
+    "silence_ms": 1500,
+    "onset_ms": 180,
+    "abs_floor": 0.012,
+    "noise_mult": 3.2,
+    "min_utter_ms": 300,
+    "max_utterance_ms": 30000
+  },
+  "interviewer": {
+    "model_id": "accounts/fireworks/models/gpt-oss-120b"
+  }
+}

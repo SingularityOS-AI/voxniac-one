@@ -1,0 +1,943 @@
+/* ==========================================================================
+   VOXNIAC ONE — Live Call UI stylesheet
+   Warm cream + terracotta palette (Space Grotesk / Inter / JetBrains Mono)
+   ========================================================================== */
+:root {
+  --bg: #faf6ef;
+  --surface: #ffffff;
+  --surface2: #fbf5ec;
+  --border: #e9ddcb;
+  --border-glow: #f0c9a8;
+  --accent: #e8623c;
+  --accent2: #c94e2c;
+  --success: #4a9b5e;
+  --warning: #c9821f;
+  --danger: #d64545;
+  --text: #2b2420;
+  --muted: #8a7d6c;
+  --muted-cream: #e8d9c3;
+  --radius: 14px;
+  --font-display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  min-height: 100vh;
+  padding: 20px;
+  max-width: 1040px;
+  margin: 0 auto;
+  background:
+    radial-gradient(1100px 560px at 50% -8%, rgba(232, 98, 60, .10), transparent 62%),
+    radial-gradient(900px 500px at 100% 110%, rgba(74, 155, 94, .05), transparent 60%),
+    var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+::selection { background: var(--accent2); color: #fff; }
+
+/* ── HEADER ── */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo-icon {
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 20px rgba(201, 78, 44, .28);
+  flex-shrink: 0;
+}
+
+.logo-name {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: .4px;
+}
+
+.logo-sub {
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .9px;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: all .3s;
+  flex-shrink: 0;
+}
+
+.dot.connected {
+  background: var(--success);
+  box-shadow: 0 0 8px rgba(74, 155, 94, .6);
+}
+
+.dot.in-call {
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(232, 98, 60, .6);
+  animation: callPulse .8s ease-in-out infinite;
+}
+
+.dot.speaking {
+  background: var(--danger);
+  box-shadow: 0 0 8px var(--danger);
+  animation: speakingPulse .6s ease-in-out infinite;
+}
+
+@keyframes callPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .4; }
+}
+
+@keyframes speakingPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .5; }
+}
+
+/* ── AGENT SETUP (interviewer) CARD ── */
+.setup-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 24px rgba(140, 110, 70, .06);
+  overflow: hidden;
+}
+
+.setup-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  user-select: none;
+}
+
+.setup-summary::-webkit-details-marker {
+  display: none;
+}
+
+.setup-summary-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.setup-summary::before {
+  content: '▸';
+  display: inline-block;
+  margin-right: 8px;
+  color: var(--accent2);
+  transition: transform .15s ease;
+}
+
+.setup-card[open] .setup-summary::before {
+  transform: rotate(90deg);
+}
+
+.state-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.state-badge.INTERVIEWING {
+  background: rgba(232, 98, 60, .10);
+  color: var(--accent2);
+  border-color: var(--border-glow);
+}
+
+.state-badge.REVIEWING_PLAN {
+  background: rgba(201, 130, 31, .12);
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+.state-badge.APPROVED {
+  background: rgba(74, 155, 94, .12);
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.setup-body {
+  padding: 0 18px 18px;
+  border-top: 1px solid var(--border);
+}
+
+.interview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 14px;
+}
+
+.interview-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.interview-messages::-webkit-scrollbar {
+  width: 6px;
+}
+
+.interview-messages::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.interview-bubble {
+  max-width: 85%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+.interview-bubble.assistant {
+  align-self: flex-start;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  color: var(--text);
+}
+
+.interview-bubble.user {
+  align-self: flex-end;
+  background: var(--muted-cream);
+  color: #5a4e42;
+}
+
+.interview-bubble.partial {
+  font-style: italic;
+  opacity: .75;
+}
+
+.interview-plan-preview {
+  align-self: stretch;
+  background: var(--surface2);
+  border: 1px solid var(--border-glow);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  color: var(--text);
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+/* Phase 3.5 P2: interviewer model select (120B quality / 20B fast) */
+.interview-model-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.interview-model-row select {
+  flex: 1;
+}
+
+.interview-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+/* Phase 3.5 P2: voice-note mic button */
+.interview-mic-btn {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s ease;
+}
+
+.interview-mic-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: rgba(232, 98, 60, .08);
+}
+
+.interview-mic-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.interview-mic-btn.recording {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+  animation: micPulse .8s ease-in-out infinite;
+}
+
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(214, 69, 69, .5); }
+  50% { box-shadow: 0 0 0 8px rgba(214, 69, 69, 0); }
+}
+
+.interview-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font-size: 13.5px;
+  font-family: inherit;
+  outline: none;
+}
+
+.interview-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(232, 98, 60, .12);
+}
+
+.interview-input:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.interview-send-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-display);
+  cursor: pointer;
+  transition: opacity .15s ease;
+}
+
+.interview-send-btn:hover:not(:disabled) {
+  opacity: .88;
+}
+
+.interview-send-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.interview-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.interview-ctrl-btn {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  transition: all .15s ease;
+}
+
+.interview-ctrl-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.interview-ctrl-btn.approve:not(:disabled) {
+  background: var(--success);
+  color: #fff;
+  border-color: var(--success);
+}
+
+.interview-ctrl-btn.adjust:not(:disabled) {
+  background: var(--warning);
+  color: #fff;
+  border-color: var(--warning);
+}
+
+.interview-ctrl-btn.reset {
+  background: var(--surface2);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.interview-ctrl-btn.reload {
+  background: var(--surface2);
+  color: var(--accent2);
+  border-color: var(--accent);
+}
+
+.interview-status {
+  min-height: 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* Phase 3.5 QA fix: "Reload profile" button status line */
+.profile-reload-status {
+  min-height: 16px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.profile-reload-status.status-ok {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.profile-reload-status.status-error {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* ── CALL A PROSPECT CARD ── */
+.prospect-call-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 4px 24px rgba(140, 110, 70, .06);
+}
+
+.prospect-call-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tunnel-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.prospect-call-row {
+  display: flex;
+  gap: 8px;
+}
+
+.prospect-phone-input {
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13.5px;
+  font-family: var(--font-mono);
+  outline: none;
+}
+
+.prospect-phone-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(232, 98, 60, .12);
+}
+
+.prospect-call-btn {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity .15s ease;
+}
+
+.prospect-call-btn:hover:not(:disabled) {
+  opacity: .88;
+}
+
+.prospect-call-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.prospect-call-result {
+  min-height: 16px;
+  font-size: 12px;
+  font-family: var(--font-mono);
+  color: var(--muted);
+}
+
+.prospect-call-result.ok {
+  color: var(--success);
+}
+
+.prospect-call-result.error {
+  color: var(--danger);
+}
+
+/* Phase 3.5 P1: live call monitor status + transcript */
+.prospect-call-status {
+  min-height: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent2);
+}
+
+.prospect-transcript-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.prospect-transcript-header {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--muted);
+}
+
+.prospect-transcript-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+/* ── LLM SELECTOR ── */
+.llm-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  box-shadow: 0 4px 24px rgba(140, 110, 70, .06);
+}
+
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--muted);
+}
+
+select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 9px 10px;
+  font-size: 13.5px;
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(232, 98, 60, .12);
+}
+
+select:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+select option:disabled {
+  color: #bbae9a;
+}
+
+/* ── AGENT OPENING PANEL ── */
+.agent-opening-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-glow);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 0 20px rgba(232, 98, 60, .08);
+}
+
+.agent-opening-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--accent2);
+}
+
+.agent-opening-text {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+/* ── CALL BUTTON PANEL ── */
+.call-button-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 24px rgba(140, 110, 70, .06);
+}
+
+.call-btn {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  user-select: none;
+  transition: all .2s ease;
+  position: relative;
+}
+
+.call-btn:hover:not(:disabled) {
+  background: rgba(232, 98, 60, .08);
+  transform: scale(1.05);
+}
+
+.call-btn:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+.call-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent2);
+  box-shadow: 0 0 28px rgba(232, 98, 60, .4);
+  animation: callActive 1.4s ease-in-out infinite;
+}
+
+@keyframes callActive {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(232, 98, 60, .4);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(232, 98, 60, 0);
+  }
+}
+
+.call-hint {
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: center;
+}
+
+/* ── TRANSCRIPT PANEL ── */
+.transcript-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+  box-shadow: 0 4px 24px rgba(140, 110, 70, .06);
+}
+
+.transcript-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.transcript-panel::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.transcript-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--muted);
+}
+
+.transcript-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.transcript-bubble {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: fadeIn .2s ease;
+}
+
+@keyframes fadeIn {
+  0% { opacity: 0; transform: translateY(-4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.transcript-speaker {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  color: var(--muted);
+}
+
+.transcript-text {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 8px;
+}
+
+/* User message: right-aligned, muted cream background */
+.transcript-bubble.user .transcript-text {
+  background: var(--muted-cream);
+  color: #5a4e42;
+  margin-left: auto;
+  max-width: 80%;
+  text-align: right;
+}
+
+/* User partial: italic, muted */
+.transcript-bubble.user.partial .transcript-text {
+  font-style: italic;
+  opacity: .7;
+}
+
+/* Agent message: left-aligned, white with terracotta left border */
+.transcript-bubble.agent .transcript-text {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  color: var(--text);
+  max-width: 80%;
+}
+
+/* Agent partial: italic, muted */
+.transcript-bubble.agent.partial .transcript-text {
+  font-style: italic;
+  opacity: .7;
+}
+
+/* ── LATENCY GRID ── */
+.latency-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.latency-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: 0 4px 24px rgba(140, 110, 70, .05);
+}
+
+.latency-value {
+  font-size: 24px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  color: var(--accent2);
+}
+
+.latency-label {
+  font-size: 10.5px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .6px;
+}
+
+/* ── STATUS AREA ── */
+.status-area {
+  min-height: 20px;
+  font-size: 13px;
+  padding: 4px 2px;
+}
+
+.status-ok {
+  color: var(--success);
+}
+
+.status-error {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.status-info {
+  color: var(--muted);
+}
+
+/* ── HISTORY TABLE ── */
+.history-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 320px;
+  overflow-y: auto;
+  box-shadow: 0 4px 24px rgba(140, 110, 70, .06);
+}
+
+.history-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.history-panel::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.history-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .8px;
+  color: var(--muted);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  font-family: var(--font-mono);
+}
+
+th, td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+th {
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  letter-spacing: .5px;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  font-family: var(--font-body);
+}
+
+tbody tr:hover {
+  background: rgba(232, 98, 60, .04);
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 720px) {
+  .latency-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .call-btn {
+    width: 100px;
+    height: 100px;
+    font-size: 16px;
+  }
+  .transcript-panel {
+    max-height: 300px;
+  }
+  .history-panel {
+    max-height: 240px;
+  }
+}

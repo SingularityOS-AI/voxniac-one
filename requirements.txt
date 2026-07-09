@@ -1,0 +1,7 @@
+requests
+python-dotenv
+fastapi
+uvicorn[standard]
+websockets>=13
+groq
+twilio

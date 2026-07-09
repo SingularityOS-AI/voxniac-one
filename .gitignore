@@ -1,0 +1,21 @@
+# Secrets live in the parent folder's .env — never commit any env file
+.env
+*.env
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Cloud credentials — never commit (Gate 2)
+*credentials*.json
+singularityos-neural-captions-*.json
+
+# Runtime artifacts
+recordings/
+*.jsonl
+onboarding_state.json
+
+# Phase 3.5 P1: per-call transcripts contain free-text prospect conversations
+transcripts/
