@@ -810,6 +810,16 @@ function setProspectCallStatus(msg, level = 'info') {
 }
 
 function handleMonitorEvent(callId, evt) {
+  // Control Room: flag the Layer 2 sidebar item if the user isn't looking
+  // at it already, instead of yanking them away from whatever they're
+  // doing (per PLAN_UI_CONTROL_ROOM.md's layout note). `activeLayer` is
+  // declared later in this file but always initialized before any WS
+  // message can arrive (see "Control Room layer navigation").
+  if (typeof activeLayer !== 'undefined' && activeLayer !== '2') {
+    const dot = document.querySelector('.pipeline-item[data-layer="2"] .pipeline-dot');
+    if (dot) dot.classList.add('active-alert');
+  }
+
   if (state.monitorCallId !== callId) {
     // A new call started (or the first one this page has seen) — reset the
     // live transcript so calls never bleed into each other.
@@ -1175,6 +1185,35 @@ if (el.interviewMicBtn) {
   });
 }
 
+// ── Control Room layer navigation (Phase 3.6 UI redesign) ─────────────────
+// Switching layers only toggles a CSS class on the sidebar item + its
+// matching panel — no panel is ever removed from the DOM, so /ws/call,
+// /ws/interview and /ws/monitor (and all mic/TTS state) keep running
+// underneath regardless of which layer is currently visible. This is the
+// only new "change layer" behavior app.js gains per PLAN_UI_CONTROL_ROOM.md
+// rule 1 (no existing id's behavior changes).
+const pipelineItems = document.querySelectorAll('.pipeline-item');
+const layerPanels = document.querySelectorAll('.layer-panel');
+let activeLayer = '1';
+
+function setActiveLayer(layer) {
+  activeLayer = layer;
+  pipelineItems.forEach((item) => {
+    item.classList.toggle('active', item.dataset.layer === layer);
+  });
+  layerPanels.forEach((panel) => {
+    panel.classList.toggle('active', panel.dataset.layerPanel === layer);
+  });
+  if (layer === '2') {
+    const dot = document.querySelector('.pipeline-item[data-layer="2"] .pipeline-dot');
+    if (dot) dot.classList.remove('active-alert');
+  }
+}
+
+pipelineItems.forEach((item) => {
+  item.addEventListener('click', () => setActiveLayer(item.dataset.layer));
+});
+
 // ── Init ─────────────────────────────────────────────────────────────────
 loadConfig();
 connectWs();
@@ -1182,3 +1221,4 @@ refreshTunnelStatus();
 setInterval(refreshTunnelStatus, 10000);
 connectInterviewWs();
 connectMonitorWs();
+setActiveLayer('1');

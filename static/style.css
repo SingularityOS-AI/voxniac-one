@@ -35,7 +35,7 @@ html, body {
 body {
   min-height: 100vh;
   padding: 20px;
-  max-width: 1040px;
+  max-width: 1280px;
   margin: 0 auto;
   background:
     radial-gradient(1100px 560px at 50% -8%, rgba(232, 98, 60, .10), transparent 62%),
@@ -44,6 +44,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-x: hidden;
 }
 
 ::selection { background: var(--accent2); color: #fff; }
@@ -140,49 +141,206 @@ header {
   50% { opacity: .5; }
 }
 
-/* ── AGENT SETUP (interviewer) CARD ── */
-.setup-card {
+/* ── CONTROL ROOM LAYOUT (Phase 3.6): sidebar + active-layer stage ── */
+.control-room {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  width: 100%;
+  min-width: 0;
+}
+
+.pipeline-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  padding: 16px 12px;
   box-shadow: 0 4px 24px rgba(140, 110, 70, .06);
-  overflow: hidden;
 }
 
-.setup-summary {
-  list-style: none;
+.pipeline-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+  padding: 2px 10px 10px;
+}
+
+.pipeline-items {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Subtle vertical line connecting the 3 numbered badges */
+.pipeline-items::before {
+  content: '';
+  position: absolute;
+  left: 25px;
+  top: 22px;
+  bottom: 22px;
+  width: 1px;
+  background: var(--border);
+  z-index: 0;
+}
+
+.pipeline-item {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 10px;
   cursor: pointer;
-  padding: 14px 18px;
+  text-align: left;
+  font-family: var(--font-body);
+  color: var(--text);
+  transition: background .15s ease, border-color .15s ease;
+}
+
+.pipeline-item:hover {
+  background: var(--surface2);
+}
+
+.pipeline-item.active {
+  background: var(--muted-cream);
+  border-color: var(--border-glow);
+}
+
+.pipeline-badge {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  transition: all .15s ease;
+}
+
+.pipeline-item.active .pipeline-badge {
+  background: var(--accent);
+  border-color: var(--accent2);
+  color: #fff;
+}
+
+.pipeline-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.pipeline-item.active .pipeline-name {
+  color: var(--accent2);
+}
+
+.pipeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  flex-shrink: 0;
+  transition: all .2s ease;
+}
+
+/* Set by app.js when a Twilio monitor event arrives while the user is on a
+   different layer (see handleMonitorEvent's "Control Room" note) */
+.pipeline-dot.active-alert {
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(232, 98, 60, .6);
+  animation: callPulse .8s ease-in-out infinite;
+}
+
+.layer-stage {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.layer-panel {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.layer-panel.active {
+  display: flex;
+}
+
+.layer-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  user-select: none;
 }
 
-.setup-summary::-webkit-details-marker {
-  display: none;
-}
-
-.setup-summary-title {
+.layer-panel-title {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--text);
+  letter-spacing: .2px;
 }
 
-.setup-summary::before {
-  content: '▸';
-  display: inline-block;
-  margin-right: 8px;
-  color: var(--accent2);
-  transition: transform .15s ease;
+@media (max-width: 900px) {
+  .control-room {
+    flex-direction: column;
+  }
+  .pipeline-sidebar {
+    width: 100%;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+  }
+  .pipeline-title {
+    display: none;
+  }
+  .pipeline-items {
+    flex: 1;
+    flex-direction: row;
+    gap: 6px;
+  }
+  .pipeline-items::before {
+    display: none;
+  }
+  .pipeline-item {
+    flex: 1;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 4px;
+    text-align: center;
+  }
+  .pipeline-name {
+    font-size: 10px;
+    line-height: 1.25;
+  }
 }
 
-.setup-card[open] .setup-summary::before {
-  transform: rotate(90deg);
-}
-
+/* ── AGENT SETUP (interviewer) panel ── */
 .state-badge {
   font-size: 10.5px;
   font-weight: 700;
@@ -211,11 +369,6 @@ header {
   background: rgba(74, 155, 94, .12);
   color: var(--success);
   border-color: var(--success);
-}
-
-.setup-body {
-  padding: 0 18px 18px;
-  border-top: 1px solid var(--border);
 }
 
 .interview-panel {
@@ -821,6 +974,7 @@ select option:disabled {
 .latency-card {
   background: var(--surface);
   border: 1px solid var(--border);
+  border-bottom: 2px solid var(--accent);
   border-radius: 10px;
   padding: 14px;
   text-align: center;
@@ -833,7 +987,7 @@ select option:disabled {
 .latency-value {
   font-size: 24px;
   font-weight: 700;
-  font-family: var(--font-display);
+  font-family: var(--font-mono);
   color: var(--accent2);
 }
 
