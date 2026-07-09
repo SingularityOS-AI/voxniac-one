@@ -139,6 +139,17 @@ def test_post_interviewer_model_rejects_unknown_model():
     assert resp.json()["error"]["stage"] == "interviewer_model"
 
 
+def test_static_assets_are_served_with_no_cache_header():
+    """Regression test: the CEO saw a stale UI during the hackathon demo
+    because the browser's heuristic cache served an old app.js/style.css
+    with zero requests. Cache-Control: no-cache forces revalidation on
+    every load (a cheap 304 via StaticFiles' own ETag/Last-Modified)."""
+    with TestClient(server.app) as client:
+        resp = client.get("/static/app.js")
+    assert resp.status_code == 200
+    assert resp.headers.get("cache-control") == "no-cache"
+
+
 def test_post_interview_audio_without_active_session_fails_loud():
     with TestClient(server.app) as client:
         resp = client.post(

@@ -287,7 +287,21 @@ def index():
     return FileResponse(str(STATIC_DIR / "index.html"))
 
 
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+class NoCacheStaticFiles(StaticFiles):
+    """Forces `Cache-Control: no-cache` on every /static response so the
+    browser always revalidates with the server (a cheap 304 via the
+    ETag/Last-Modified StaticFiles already sets) instead of serving a stale
+    app.js/style.css from its heuristic cache with no request at all — the
+    exact bug that showed the CEO an old UI during the hackathon demo.
+    Subclassing is the minimal fix: no new middleware, no new dependency."""
+
+    def file_response(self, *args, **kwargs):
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
+app.mount("/static", NoCacheStaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 # ---------------------------------------------------------------------------
