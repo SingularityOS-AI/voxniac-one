@@ -810,13 +810,14 @@ function setProspectCallStatus(msg, level = 'info') {
 }
 
 function handleMonitorEvent(callId, evt) {
-  // Control Room: flag the Layer 2 sidebar item if the user isn't looking
-  // at it already, instead of yanking them away from whatever they're
-  // doing (per PLAN_UI_CONTROL_ROOM.md's layout note). `activeLayer` is
-  // declared later in this file but always initialized before any WS
-  // message can arrive (see "Control Room layer navigation").
-  if (typeof activeLayer !== 'undefined' && activeLayer !== '2') {
-    const dot = document.querySelector('.pipeline-item[data-layer="2"] .pipeline-dot');
+  // Control Room: flag the Phone Outreach sidebar item (layer '3' since the
+  // Etapa A reorder — Voice Engine/Agent Setup/Phone Outreach/Campaigns) if
+  // the user isn't looking at it already, instead of yanking them away from
+  // whatever they're doing (per PLAN_UI_CONTROL_ROOM.md's layout note).
+  // `activeLayer` is declared later in this file but always initialized
+  // before any WS message can arrive (see "Control Room layer navigation").
+  if (typeof activeLayer !== 'undefined' && activeLayer !== '3') {
+    const dot = document.querySelector('.pipeline-item[data-layer="3"] .pipeline-dot');
     if (dot) dot.classList.add('active-alert');
   }
 
@@ -1204,8 +1205,9 @@ function setActiveLayer(layer) {
   layerPanels.forEach((panel) => {
     panel.classList.toggle('active', panel.dataset.layerPanel === layer);
   });
-  if (layer === '2') {
-    const dot = document.querySelector('.pipeline-item[data-layer="2"] .pipeline-dot');
+  if (layer === '3') {
+    // Phone Outreach, since the Etapa A reorder (was layer '2' before).
+    const dot = document.querySelector('.pipeline-item[data-layer="3"] .pipeline-dot');
     if (dot) dot.classList.remove('active-alert');
   }
 }

@@ -27,12 +27,15 @@
 </header>
 
 <!--
-  Control Room layout (Phase 3.6): fixed left sidebar with the 3-layer
-  pipeline + one main stage showing the active layer's panel. Switching
-  layers only toggles a CSS class (see app.js's "Control Room layer
-  navigation" section) — every panel stays mounted in the DOM the whole
-  time, so /ws/call, /ws/interview and /ws/monitor all keep running
+  Control Room layout (Phase 3 final, Etapa A): fixed left sidebar with the
+  4-layer pipeline + one main stage showing the active layer's panel.
+  Switching layers only toggles a CSS class (see app.js's "Control Room
+  layer navigation" section) — every panel stays mounted in the DOM the
+  whole time, so /ws/call, /ws/interview and /ws/monitor all keep running
   regardless of which layer is currently visible.
+
+  Order per PLAN_FASE4_CAMPAIGNS.md: 1 Voice Engine, 2 Agent Setup,
+  3 Phone Outreach, 4 Campaigns (placeholder — built in Etapa C).
 -->
 <div class="control-room">
   <nav class="pipeline-sidebar" aria-label="Pipeline layers">
@@ -45,13 +48,18 @@
       </button>
       <button class="pipeline-item" type="button" data-layer="2">
         <span class="pipeline-badge">2</span>
-        <span class="pipeline-name">Phone Outreach</span>
+        <span class="pipeline-name">Agent Setup</span>
         <span class="pipeline-dot"></span>
       </button>
       <button class="pipeline-item" type="button" data-layer="3">
         <span class="pipeline-badge">3</span>
-        <span class="pipeline-name">Agent Setup</span>
+        <span class="pipeline-name">Phone Outreach</span>
         <span class="pipeline-dot"></span>
+      </button>
+      <button class="pipeline-item" type="button" data-layer="4">
+        <span class="pipeline-badge">4</span>
+        <span class="pipeline-name">Campaigns</span>
+        <span class="soon-badge">SOON</span>
       </button>
     </div>
   </nav>
@@ -123,44 +131,14 @@
       </div>
     </section>
 
-    <!-- ── LAYER 2 — Phone Outreach (Twilio "call a prospect") ── -->
-    <section class="layer-panel" data-layer-panel="2">
-      <div class="layer-panel-header">
-        <h2 class="layer-panel-title">Phone Outreach</h2>
-      </div>
-
-      <div class="prospect-call-card">
-        <div class="prospect-call-header">
-          <span class="field-label">Call a prospect</span>
-          <div class="tunnel-pill">
-            <div class="dot" id="tunnelDot"></div>
-            <span id="tunnelStatusTxt">Checking tunnel…</span>
-          </div>
-        </div>
-        <div class="prospect-call-row">
-          <input type="tel" id="prospectPhone" class="prospect-phone-input"
-                 placeholder="+1 307 555 0100">
-          <button id="prospectCallBtn" class="prospect-call-btn" disabled>Call prospect</button>
-        </div>
-        <div class="prospect-call-result" id="prospectCallResult"></div>
-        <div class="prospect-call-status" id="prospectCallStatus"></div>
-        <div class="prospect-transcript-panel">
-          <div class="prospect-transcript-header">Live call transcript</div>
-          <div class="prospect-transcript-messages" id="prospectTranscriptMessages"></div>
-        </div>
-      </div>
-    </section>
-
     <!--
-      LAYER 3 — Agent Setup (onboarding interviewer). Replaces the old
-      <details id="setupCard"> collapsible: per PLAN_UI_CONTROL_ROOM.md,
-      "the <details> disappears — Layer 3 is a first-class panel." The
-      "setupCard" id had zero functional dependents (never read by app.js,
-      never targeted by an #setupCard CSS rule — only the .setup-card
-      CLASS was styled) so nothing behavioral changes; documented per the
-      spec's own "ajuste mínimo documentado" allowance.
+      LAYER 2 — Agent Setup (onboarding interviewer). Was Layer 3 before
+      the Etapa A reorder; before that it replaced the old
+      <details id="setupCard"> collapsible (PLAN_UI_CONTROL_ROOM.md — that
+      id had zero functional dependents in app.js/CSS, only the .setup-card
+      CLASS was ever styled, so nothing behavioral changed by dropping it).
     -->
-    <section class="layer-panel" data-layer-panel="3">
+    <section class="layer-panel" data-layer-panel="2">
       <div class="layer-panel-header">
         <h2 class="layer-panel-title">Agent Setup</h2>
         <span class="state-badge" id="interviewStateBadge">—</span>
@@ -190,6 +168,55 @@
         </div>
         <div class="interview-status" id="interviewStatus"></div>
         <div class="profile-reload-status" id="profileReloadStatus"></div>
+      </div>
+    </section>
+
+    <!-- ── LAYER 3 — Phone Outreach (Twilio "call a prospect") ── -->
+    <section class="layer-panel" data-layer-panel="3">
+      <div class="layer-panel-header">
+        <h2 class="layer-panel-title">Phone Outreach</h2>
+      </div>
+
+      <div class="prospect-call-card">
+        <div class="prospect-call-header">
+          <span class="field-label">Call a prospect</span>
+          <div class="tunnel-pill">
+            <div class="dot" id="tunnelDot"></div>
+            <span id="tunnelStatusTxt">Checking tunnel…</span>
+          </div>
+        </div>
+        <div class="prospect-call-row">
+          <input type="tel" id="prospectPhone" class="prospect-phone-input"
+                 placeholder="+1 307 555 0100">
+          <button id="prospectCallBtn" class="prospect-call-btn" disabled>Call prospect</button>
+        </div>
+        <div class="prospect-call-result" id="prospectCallResult"></div>
+        <div class="prospect-call-status" id="prospectCallStatus"></div>
+        <div class="prospect-transcript-panel">
+          <div class="prospect-transcript-header">Live call transcript</div>
+          <div class="prospect-transcript-messages" id="prospectTranscriptMessages"></div>
+        </div>
+      </div>
+    </section>
+
+    <!--
+      LAYER 4 — Campaigns (Etapa C builds this). Deliberately an honest
+      empty state, not a mock-up with fake metrics/sliders — nothing here
+      has a backend yet, so nothing here pretends to.
+    -->
+    <section class="layer-panel" data-layer-panel="4">
+      <div class="layer-panel-header">
+        <h2 class="layer-panel-title">Campaigns</h2>
+        <span class="soon-badge">SOON</span>
+      </div>
+
+      <div class="layer-placeholder">
+        <div class="layer-placeholder-title">Coming in the next phase</div>
+        <div class="layer-placeholder-text">
+          Lead import, HOT/WARM/COLD classification, per-lead prompt
+          generation and one-click calling land here in Fase 4. Nothing to
+          configure yet.
+        </div>
       </div>
     </section>
 

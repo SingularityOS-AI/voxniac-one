@@ -3,20 +3,27 @@
    Warm cream + terracotta palette (Space Grotesk / Inter / JetBrains Mono)
    ========================================================================== */
 :root {
+  /* Phase 3 final (Etapa A): tokens ported from frontend-stich/DESIGN.md's
+     "Technical Warmth Console" system — primary/primary-container roles
+     (#a63818 / #c7502e), ink-at-10%-opacity card borders (Level 1 elevation),
+     1rem radius for major sections. The warm cream bg + charcoal ink were
+     already this exact palette before Etapa A, so only accent/border/radius
+     change here — no Tailwind, no new fonts, no CDN. */
   --bg: #faf6ef;
   --surface: #ffffff;
   --surface2: #fbf5ec;
-  --border: #e9ddcb;
-  --border-glow: #f0c9a8;
-  --accent: #e8623c;
-  --accent2: #c94e2c;
+  --border: rgba(43, 36, 32, .1);
+  --border-glow: rgba(199, 80, 46, .4);
+  --accent: #c7502e;
+  --accent2: #a63818;
   --success: #4a9b5e;
   --warning: #c9821f;
   --danger: #d64545;
   --text: #2b2420;
   --muted: #8a7d6c;
   --muted-cream: #e8d9c3;
-  --radius: 14px;
+  --radius: 16px;
+  --radius-sm: 8px;
   --font-display: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif;
   --font-body: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
@@ -38,7 +45,7 @@ body {
   max-width: 1280px;
   margin: 0 auto;
   background:
-    radial-gradient(1100px 560px at 50% -8%, rgba(232, 98, 60, .10), transparent 62%),
+    radial-gradient(1100px 560px at 50% -8%, rgba(199, 80, 46, .10), transparent 62%),
     radial-gradient(900px 500px at 100% 110%, rgba(74, 155, 94, .05), transparent 60%),
     var(--bg);
   display: flex;
@@ -67,13 +74,14 @@ header {
 .logo-icon {
   width: 44px;
   height: 44px;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-  border-radius: 14px;
+  /* DESIGN.md: "No gradients" — flat primary fill, same as every real button */
+  background: var(--accent2);
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
-  box-shadow: 0 4px 20px rgba(201, 78, 44, .28);
+  box-shadow: 0 4px 20px rgba(166, 56, 24, .28);
   flex-shrink: 0;
 }
 
@@ -121,7 +129,7 @@ header {
 
 .dot.in-call {
   background: var(--accent);
-  box-shadow: 0 0 8px rgba(232, 98, 60, .6);
+  box-shadow: 0 0 8px rgba(199, 80, 46, .6);
   animation: callPulse .8s ease-in-out infinite;
 }
 
@@ -182,7 +190,8 @@ header {
   gap: 2px;
 }
 
-/* Subtle vertical line connecting the 3 numbered badges */
+/* Subtle vertical line connecting the numbered badges — DESIGN.md's
+   "Pipeline Connector": 1px, 20% opacity Charcoal */
 .pipeline-items::before {
   content: '';
   position: absolute;
@@ -190,7 +199,7 @@ header {
   top: 22px;
   bottom: 22px;
   width: 1px;
-  background: var(--border);
+  background: rgba(43, 36, 32, .2);
   z-index: 0;
 }
 
@@ -267,8 +276,49 @@ header {
    different layer (see handleMonitorEvent's "Control Room" note) */
 .pipeline-dot.active-alert {
   background: var(--accent);
-  box-shadow: 0 0 8px rgba(232, 98, 60, .6);
+  box-shadow: 0 0 8px rgba(199, 80, 46, .6);
   animation: callPulse .8s ease-in-out infinite;
+}
+
+/* Layer 4 — Campaigns: visible nav item, honest "not built yet" state
+   (no fake metrics, no disabled ghost button — it just says so). */
+.soon-badge {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .5px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(199, 80, 46, .12);
+  color: var(--accent2);
+  border: 1px solid rgba(199, 80, 46, .3);
+}
+
+.layer-placeholder {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.layer-placeholder-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.layer-placeholder-text {
+  font-size: 13.5px;
+  max-width: 420px;
+  line-height: 1.6;
 }
 
 .layer-stage {
@@ -354,7 +404,7 @@ header {
 }
 
 .state-badge.INTERVIEWING {
-  background: rgba(232, 98, 60, .10);
+  background: rgba(199, 80, 46, .10);
   color: var(--accent2);
   border-color: var(--border-glow);
 }
@@ -474,7 +524,7 @@ header {
 
 .interview-mic-btn:hover:not(:disabled) {
   border-color: var(--accent);
-  background: rgba(232, 98, 60, .08);
+  background: rgba(199, 80, 46, .08);
 }
 
 .interview-mic-btn:disabled {
@@ -508,7 +558,7 @@ header {
 
 .interview-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 10px rgba(232, 98, 60, .12);
+  box-shadow: 0 0 10px rgba(199, 80, 46, .12);
 }
 
 .interview-input:disabled {
@@ -657,7 +707,7 @@ header {
 
 .prospect-phone-input:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 10px rgba(232, 98, 60, .12);
+  box-shadow: 0 0 10px rgba(199, 80, 46, .12);
 }
 
 .prospect-call-btn {
@@ -715,11 +765,14 @@ header {
 }
 
 .prospect-transcript-header {
+  font-family: var(--font-mono);
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .6px;
   color: var(--muted);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
 }
 
 .prospect-transcript-messages {
@@ -765,7 +818,7 @@ select {
 
 select:focus {
   border-color: var(--accent);
-  box-shadow: 0 0 10px rgba(232, 98, 60, .12);
+  box-shadow: 0 0 10px rgba(199, 80, 46, .12);
 }
 
 select:disabled {
@@ -787,7 +840,7 @@ select option:disabled {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  box-shadow: 0 0 20px rgba(232, 98, 60, .08);
+  box-shadow: 0 0 20px rgba(199, 80, 46, .08);
 }
 
 .agent-opening-label {
@@ -837,7 +890,7 @@ select option:disabled {
 }
 
 .call-btn:hover:not(:disabled) {
-  background: rgba(232, 98, 60, .08);
+  background: rgba(199, 80, 46, .08);
   transform: scale(1.05);
 }
 
@@ -850,16 +903,16 @@ select option:disabled {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent2);
-  box-shadow: 0 0 28px rgba(232, 98, 60, .4);
+  box-shadow: 0 0 28px rgba(199, 80, 46, .4);
   animation: callActive 1.4s ease-in-out infinite;
 }
 
 @keyframes callActive {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(232, 98, 60, .4);
+    box-shadow: 0 0 0 0 rgba(199, 80, 46, .4);
   }
   50% {
-    box-shadow: 0 0 0 12px rgba(232, 98, 60, 0);
+    box-shadow: 0 0 0 12px rgba(199, 80, 46, 0);
   }
 }
 
@@ -893,11 +946,14 @@ select option:disabled {
 }
 
 .transcript-header {
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .8px;
   color: var(--muted);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
 }
 
 .transcript-messages {
@@ -1042,11 +1098,14 @@ select option:disabled {
 }
 
 .history-header {
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: .8px;
   color: var(--muted);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
 }
 
 table {
@@ -1075,7 +1134,7 @@ th {
 }
 
 tbody tr:hover {
-  background: rgba(232, 98, 60, .04);
+  background: rgba(199, 80, 46, .04);
 }
 
 /* ── RESPONSIVE ── */
