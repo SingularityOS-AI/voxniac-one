@@ -46,7 +46,7 @@ DEFAULT_CLOUDFLARED_PATH = (
     r"\monitoreo vapi\cloudflared.exe"
 )
 TUNNEL_URL_RE = re.compile(r"https://[a-zA-Z0-9-]+\.trycloudflare\.com")
-TUNNEL_TIMEOUT_S = 30
+TUNNEL_TIMEOUT_S = 60
 DNS_PROPAGATION_WAIT_S = 3
 HEALTH_CHECK_TIMEOUT_S = 5
 
@@ -173,9 +173,12 @@ def start_tunnel(port: int = 8080):
     while time.monotonic() < deadline:
         remaining = deadline - time.monotonic()
         try:
-            line = line_queue.get(timeout=max(0.1, remaining))
+            line = line_queue.get(timeout=max(0.1, min(1.0, remaining)))
         except queue.Empty:
+            if time.monotonic() < deadline:
+                continue
             break
+        
         match = TUNNEL_URL_RE.search(line)
         if match:
             host = match.group(0).replace("https://", "")

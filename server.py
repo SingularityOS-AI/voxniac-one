@@ -162,6 +162,9 @@ async def lifespan(app: FastAPI):
     app.state.public_host = None
     app.state.public_wss = None
 
+    # Clean up any orphan cloudflared processes from previous crashes
+    _stop_tunnel_process()
+
     if PUBLIC_HOST_OVERRIDE:
         app.state.public_host = PUBLIC_HOST_OVERRIDE
         app.state.public_wss = f"wss://{PUBLIC_HOST_OVERRIDE}/ws/twilio"
@@ -604,6 +607,27 @@ def call_status():
         "tunnel_up": bool(getattr(app.state, "tunnel_up", False)),
         "public_host": getattr(app.state, "public_host", None),
     })
+
+
+@app.post("/tunnel/restart")
+async def restart_tunnel_endpoint():
+    """Phase 4: manually trigger a tunnel restart if it's down."""
+    global _tunnel_process
+    _stop_tunnel_process()
+    
+    if PUBLIC_HOST_OVERRIDE:
+        return JSONResponse({"status": "ignored", "detail": "VOXNIAC_PUBLIC_HOST is set, skipping tunnel."})
+        
+    try:
+        process, host = await asyncio.to_thread(start_tunnel, TUNNEL_PORT)
+        _tunnel_process = process
+        app.state.public_host = host
+        app.state.public_wss = f"wss://{host}/ws/twilio"
+        app.state.tunnel_up = True
+        return JSONResponse({"status": "ok", "public_host": host})
+    except Exception as exc:
+        app.state.tunnel_up = False
+        return JSONResponse({"status": "error", "detail": str(exc)}, status_code=500)
 
 
 @app.post("/call")
