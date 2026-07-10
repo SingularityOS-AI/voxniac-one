@@ -34,6 +34,7 @@ pytest.ini
 # Documentacion / notas de trabajo — no son necesarias para que la app corra.
 *.md
 *.txt
+!requirements.txt
 frontend-stich/
 
 # Artifacts de otros ejecutables Windows, no aplican dentro del contenedor Linux.
