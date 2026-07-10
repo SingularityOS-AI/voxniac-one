@@ -1,0 +1,40 @@
+# Control de versiones / config de agentes — no pertenece a la imagen.
+.git
+.gitignore
+.claude
+.pytest_cache
+.ruff_cache
+
+# Secretos — SIEMPRE fuera de la imagen, se inyectan en runtime via --env-file/.env
+.env
+*.env
+
+# Datos runtime / gitignored: no deben "congelarse" dentro de la imagen.
+# leads.db persiste via volumen de docker-compose, no como archivo copiado.
+recordings/
+transcripts/
+leads.db
+*.jsonl
+onboarding_state.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Tests: no hace falta correrlos dentro de la imagen final del hackathon.
+# Decision: se excluyen para mantener la imagen liviana y el build rapido;
+# los tests se corren en CI/local con pytest -v, no en el contenedor de demo.
+tests/
+conftest.py
+pytest.ini
+
+# Documentacion / notas de trabajo — no son necesarias para que la app corra.
+*.md
+*.txt
+frontend-stich/
+
+# Artifacts de otros ejecutables Windows, no aplican dentro del contenedor Linux.
+*.bat

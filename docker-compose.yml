@@ -1,0 +1,24 @@
+services:
+  voxniac-one:
+    build: .
+    image: voxniac-one:latest
+    container_name: voxniac-one
+    ports:
+      - "8080:8080"
+    env_file:
+      # Las variables (GROQ_API_KEY, FIREWORKS_API_KEY/GPT20B_API_KEY,
+      # DEEPGRAM_API_KEY, KOKORO_API_KEY, TWILIO_SID, TWILIO_TOKEN,
+      # TWILIO_PHONE_NUMBER, GOOGLE_MODEL, VOXNIAC_PORT, VOXNIAC_PUBLIC_HOST,
+      # DEMO_SAFE_MODE, CALL_ME_NUMBER) viven SOLO en este .env local,
+      # nunca en este archivo ni en la imagen.
+      - .env
+    volumes:
+      # Persiste leads.db entre reinicios/recreaciones del contenedor.
+      # leads.py resuelve la ruta como THIS_DIR/leads.db (THIS_DIR = /app
+      # dentro del contenedor), asi que el volumen se monta sobre ese path
+      # exacto — NO sobre /app entero, para no tapar el resto del codigo.
+      - voxniac-leads-db:/app/leads.db
+    restart: unless-stopped
+
+volumes:
+  voxniac-leads-db:
