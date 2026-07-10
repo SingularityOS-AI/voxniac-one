@@ -206,6 +206,7 @@ class CascadeSession:
 
         self._stopped = False
         self._loop = asyncio.get_event_loop()
+        self._vad_timer_task = None
 
     # ------------------------------------------------------------------
     # Public API
@@ -244,6 +245,12 @@ class CascadeSession:
         opening = self.profile.get("agent_opening", "")
         if opening:
             self.history.add_assistant(opening)
+            # Emit the agent_done event for the opening line so the UI monitor shows it instantly!
+            await self.transport.send_event({
+                "type": "agent_done",
+                "text": opening,
+                "ttft": 0.0,
+            })
             sentences, _ = _extract_sentences(opening, force=True)
             for sentence in sentences:
                 await self._speak_sentence(sentence)
@@ -266,6 +273,7 @@ class CascadeSession:
         if self._stopped:
             return
         self._stopped = True
+        self._cancel_vad_timer()
         if self._current_turn_task is not None and not self._current_turn_task.done():
             self._current_turn_task.cancel()
         for task in self._tasks:
@@ -346,6 +354,24 @@ class CascadeSession:
             await self.transport.send_event({"type": "stt_partial", "text": text})
             self._final_queue.put_nowait((text, t_started, t_final))
 
+    def _cancel_vad_timer(self):
+        if self._vad_timer_task and not self._vad_timer_task.done():
+            self._vad_timer_task.cancel()
+        self._vad_timer_task = None
+
+    async def _vad_fallback_worker(self):
+        try:
+            await asyncio.sleep(0.8)
+            full_text = " ".join(self._utterance_parts).strip()
+            self._utterance_parts = []
+            if full_text:
+                logger.info("VAD fallback triggered: committing utterance parts after 0.8s silence: %s", full_text)
+                t_final = time.time()
+                t_started = self._t_speech_started or t_final
+                self._final_queue.put_nowait((full_text, t_started, t_final))
+        except asyncio.CancelledError:
+            pass
+
     # ------------------------------------------------------------------
     # STT callbacks (invoked synchronously from LiveSTT's receive-loop task)
     # ------------------------------------------------------------------
@@ -356,6 +382,9 @@ class CascadeSession:
         text = (text or "").strip()
         if text:
             self._utterance_parts.append(text)
+        
+        self._cancel_vad_timer()
+        
         if speech_final:
             full_text = " ".join(self._utterance_parts).strip()
             self._utterance_parts = []
@@ -363,8 +392,12 @@ class CascadeSession:
                 t_final = time.time()
                 t_started = self._t_speech_started or t_final
                 self._final_queue.put_nowait((full_text, t_started, t_final))
+        else:
+            if self._utterance_parts:
+                self._vad_timer_task = asyncio.create_task(self._vad_fallback_worker())
 
     def _on_speech_started(self):
+        self._cancel_vad_timer()
         self._t_speech_started = time.time()
         if self._agent_busy:
             asyncio.create_task(self._handle_barge_in())
@@ -529,6 +562,25 @@ class CascadeSession:
         except asyncio.CancelledError:
             pass
 
+    def _clean_action_tags(self, text: str) -> str:
+        """Strip [HANGUP], [ESCALATE], and [CONCLUDE] case-insensitively."""
+        return re.sub(r"\[(HANGUP|ESCALATE|CONCLUDE)\]", "", text, flags=re.IGNORECASE).strip()
+
+    async def _delayed_hangup(self):
+        """Waits for current turn's sentences to finish playing, then hangs up programmatically."""
+        try:
+            if self._pending_flushes > 0:
+                try:
+                    await asyncio.wait_for(self._all_flushed_event.wait(), timeout=10.0)
+                except asyncio.TimeoutError:
+                    pass
+            # Let the buffer drain out of the client/Twilio socket for a second
+            await asyncio.sleep(1.0)
+            logger.info("delayed_hangup: programmatically severing transport websocket connection.")
+            await self.transport.ws.close()
+        except Exception as exc:
+            logger.error("delayed_hangup failed: %s", exc)
+
     def _reasoning_effort_for(self, model_id: str) -> str:
         for _key, (mid, _label, effort) in MODELOS_LLM.items():
             if mid == model_id:
@@ -583,6 +635,7 @@ class CascadeSession:
         llm_response = ""
         llm_error = None
         pending = ""
+        hangup_triggered = False
 
         while True:
             item = await token_queue.get()
@@ -601,7 +654,22 @@ class CascadeSession:
                 if not sentences and len(pending) >= FORCE_FLUSH_CHARS:
                     sentences, pending = _extract_sentences(pending, force=True)
                 for sentence in sentences:
-                    await self._speak_sentence(sentence)
+                    has_hangup = any(tag in sentence.upper() for tag in ["[HANGUP]", "[ESCALATE]", "[CONCLUDE]"])
+                    clean_sentence = self._clean_action_tags(sentence)
+                    if clean_sentence:
+                        await self._speak_sentence(clean_sentence)
+                    if has_hangup:
+                        logger.info("Action tag detected in live stream sentence: %s. Initiating programmatic hangup.", sentence)
+                        hangup_triggered = True
+                        asyncio.create_task(self._delayed_hangup())
+                        break
+                if hangup_triggered:
+                    # Cancel LLM stream thread
+                    stop_event.set()
+                    # Drain remaining items from queue
+                    while not token_queue.empty():
+                        await token_queue.get()
+                    break
 
         if llm_error is not None:
             if self.history.messages and self.history.messages[-1]["role"] == "user":
@@ -613,13 +681,24 @@ class CascadeSession:
         if self._turn_metrics["ttft_s"] is None:
             self._turn_metrics["ttft_s"] = round(time.time() - t0, 3)
 
-        remaining, pending = _extract_sentences(pending, force=True)
-        for sentence in remaining:
-            await self._speak_sentence(sentence)
+        if not hangup_triggered:
+            remaining, pending = _extract_sentences(pending, force=True)
+            for sentence in remaining:
+                has_hangup = any(tag in sentence.upper() for tag in ["[HANGUP]", "[ESCALATE]", "[CONCLUDE]"])
+                clean_sentence = self._clean_action_tags(sentence)
+                if clean_sentence:
+                    await self._speak_sentence(clean_sentence)
+                if has_hangup:
+                    logger.info("Action tag detected in remaining sentence: %s. Initiating programmatic hangup.", sentence)
+                    hangup_triggered = True
+                    asyncio.create_task(self._delayed_hangup())
+                    break
+
+        clean_llm_response = self._clean_action_tags(llm_response)
 
         await self.transport.send_event({
             "type": "agent_done",
-            "text": llm_response,
+            "text": clean_llm_response,
             "ttft": self._turn_metrics["ttft_s"],
         })
 
@@ -628,7 +707,7 @@ class CascadeSession:
             await self._send_error("llm", RuntimeError("Empty LLM response, TTS skipped."))
             return
 
-        self.history.add_assistant(llm_response)
+        self.history.add_assistant(clean_llm_response)
 
         if self._pending_flushes > 0:
             try:

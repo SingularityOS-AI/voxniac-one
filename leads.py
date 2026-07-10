@@ -538,13 +538,18 @@ def generate_lead_prompt(lead: dict, base_profile: dict) -> dict:
 CLASSIFY_SYSTEM_PROMPT = """You are an AI sales manager analyzing a call transcript from your voice
 agent. Classify the lead based on this transcript.
 
+The voice agent may have emitted one or more action tags inside the transcript to signal state changes:
+- [CONCLUDE]: means the call ended successfully (the lead is interested, wants a meeting, or gave info). This is a strong indicator of HOT.
+- [ESCALATE]: means the lead requested human handoff, had a complex technical question, or needs senior follow-up. This is a strong indicator of HOT or WARM.
+- [HANGUP]: means the line was hung up. If the lead hung up angrily or refused to talk, it is COLD. If they talked but then hung up, it could be COLD or WARM.
+
 Classification criteria:
 - HOT: the lead provided their email/contact info AND confirmed they have
-  the pain point or need a solution. A human closer should call ASAP.
+  the pain point or need a solution (or the agent emitted [CONCLUDE] or [ESCALATE] indicating high interest/handoff request). A human closer should call ASAP.
 - WARM: the lead engaged, maybe gave partial info, but was hesitant, asked
-  to be sent info, or the pain point wasn't fully confirmed. Needs follow-up.
+  to be sent info, or the pain point wasn't fully confirmed (or the agent emitted [ESCALATE] indicating handoff/more info needed). Needs follow-up.
 - COLD: the lead hung up quickly, was angry, refused to give info, or
-  explicitly said they have no interest.
+  explicitly said they have no interest (or the agent emitted [HANGUP] early due to complete disinterest).
 
 Output ONLY a JSON object with exactly these two keys, nothing else (no
 markdown fences, no prose before or after):

@@ -1048,6 +1048,41 @@ function renderPlanPreview(draft) {
   el.interviewMessages.scrollTop = el.interviewMessages.scrollHeight;
 }
 
+function deactivateActiveThought() {
+  const activeThought = el.interviewMessages.querySelector('.interview-thought.active');
+  if (activeThought) {
+    activeThought.classList.remove('active');
+    activeThought.classList.add('collapsed');
+  }
+}
+
+function addInterviewThought(token) {
+  let activeThought = el.interviewMessages.querySelector('.interview-thought.active');
+  if (!activeThought) {
+    activeThought = document.createElement('div');
+    activeThought.className = 'interview-thought active';
+    
+    const header = document.createElement('div');
+    header.className = 'interview-thought-header';
+    header.textContent = '🤔 Analytical Thought Stream';
+    
+    const body = document.createElement('div');
+    body.className = 'interview-thought-body';
+    
+    header.addEventListener('click', () => {
+      activeThought.classList.toggle('collapsed');
+    });
+    
+    activeThought.appendChild(header);
+    activeThought.appendChild(body);
+    el.interviewMessages.appendChild(activeThought);
+  }
+  
+  const body = activeThought.querySelector('.interview-thought-body');
+  body.textContent = (body.textContent || '') + (token || '');
+  el.interviewMessages.scrollTop = el.interviewMessages.scrollHeight;
+}
+
 function applyInterviewState(payload) {
   state.interviewState = payload.state;
   el.interviewStateBadge.textContent = payload.state;
@@ -1058,6 +1093,11 @@ function applyInterviewState(payload) {
 
   renderPlanPreview(payload.draft);
   setInterviewBusy(state.interviewBusy);
+
+  // Auto-fill Profile Editor manual textareas if state reaches REVIEWING_PLAN or APPROVED
+  if ((payload.state === 'REVIEWING_PLAN' || payload.state === 'APPROVED') && payload.draft) {
+    applyProfileEditorData(payload.draft);
+  }
 }
 
 function connectInterviewWs() {
@@ -1093,8 +1133,14 @@ function connectInterviewWs() {
         applyInterviewState(msg);
         break;
       }
+      case 'interviewer_thought': {
+        setInterviewBusy(true);
+        addInterviewThought(msg.token);
+        break;
+      }
       case 'interviewer_token': {
         setInterviewBusy(true);
+        deactivateActiveThought();
         const bubbles = el.interviewMessages.querySelectorAll('.interview-bubble.assistant');
         const last = bubbles.length ? bubbles[bubbles.length - 1] : null;
         if (last && last.classList.contains('partial')) {
@@ -1106,6 +1152,7 @@ function connectInterviewWs() {
         break;
       }
       case 'interviewer_done': {
+        deactivateActiveThought();
         const bubbles = el.interviewMessages.querySelectorAll('.interview-bubble.assistant.partial');
         const last = bubbles.length ? bubbles[bubbles.length - 1] : null;
         if (last) {

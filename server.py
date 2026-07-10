@@ -938,10 +938,71 @@ _active_interview_ws: "WebSocket | None" = None
 _active_interview_session: "interviewer.InterviewSession | None" = None
 
 
+class StreamingThoughtParser:
+    def __init__(self):
+        self.in_thought = False
+        self.buffer = ""
+
+    def feed(self, token: str):
+        self.buffer += token
+        emitted = []
+        
+        while self.buffer:
+            if not self.in_thought:
+                start_idx = self.buffer.find("<think>")
+                if start_idx != -1:
+                    if start_idx > 0:
+                        emitted.append(("token", self.buffer[:start_idx]))
+                    self.in_thought = True
+                    self.buffer = self.buffer[start_idx + len("<think>"):]
+                else:
+                    # Check if buffer could be a partial match of <think> (e.g., "<", "<t", "<th", etc.)
+                    partial_match = False
+                    for i in range(1, len("<think>")):
+                        if "<think>".startswith(self.buffer[-i:]):
+                            partial_match = True
+                            break
+                    if partial_match:
+                        keep_len = i
+                        emit_text = self.buffer[:-keep_len]
+                        if emit_text:
+                            emitted.append(("token", emit_text))
+                        self.buffer = self.buffer[-keep_len:]
+                        break
+                    else:
+                        emitted.append(("token", self.buffer))
+                        self.buffer = ""
+            else:
+                end_idx = self.buffer.find("</think>")
+                if end_idx != -1:
+                    if end_idx > 0:
+                        emitted.append(("thought", self.buffer[:end_idx]))
+                    self.in_thought = False
+                    self.buffer = self.buffer[end_idx + len("</think>"):]
+                else:
+                    # Check if buffer could be a partial match of </think> (e.g., "</", "</t", "</th", etc.)
+                    partial_match = False
+                    for i in range(1, len("</think>")):
+                        if "</think>".startswith(self.buffer[-i:]):
+                            partial_match = True
+                            break
+                    if partial_match:
+                        keep_len = i
+                        emit_text = self.buffer[:-keep_len]
+                        if emit_text:
+                            emitted.append(("thought", emit_text))
+                        self.buffer = self.buffer[-keep_len:]
+                        break
+                    else:
+                        emitted.append(("thought", self.buffer))
+                        self.buffer = ""
+        return emitted
+
+
 async def _run_interview_turn(ws: WebSocket, session: "interviewer.InterviewSession", fn):
     """Runs one interviewer turn (fn(on_token) -> visible_text, a blocking
     interviewer.InterviewSession method) on a worker thread, forwarding LLM
-    tokens live to the client as interviewer_token events, then sends
+    tokens live to the client as interviewer_token or interviewer_thought events, then sends
     interviewer_done (or a fail-loud error) followed by the fresh state
     snapshot. Mirrors cascade.py's run_in_executor + threadsafe-queue pattern
     used for the voice LLM turn."""
@@ -966,6 +1027,7 @@ async def _run_interview_turn(ws: WebSocket, session: "interviewer.InterviewSess
 
     loop.run_in_executor(None, worker)
 
+    parser = StreamingThoughtParser()
     final_text = None
     error_detail = None
     while True:
@@ -977,7 +1039,18 @@ async def _run_interview_turn(ws: WebSocket, session: "interviewer.InterviewSess
         elif isinstance(item, tuple) and item[0] == "__error__":
             error_detail = item[1]
         else:
-            await ws.send_json({"type": "interviewer_token", "token": item})
+            emitted = parser.feed(item)
+            for kind, text in emitted:
+                if kind == "thought":
+                    await ws.send_json({"type": "interviewer_thought", "token": text})
+                else:
+                    await ws.send_json({"type": "interviewer_token", "token": text})
+
+    if parser.buffer:
+        if parser.in_thought:
+            await ws.send_json({"type": "interviewer_thought", "token": parser.buffer})
+        else:
+            await ws.send_json({"type": "interviewer_token", "token": parser.buffer})
 
     if error_detail is not None:
         await ws.send_json({

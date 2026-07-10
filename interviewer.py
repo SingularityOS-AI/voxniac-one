@@ -106,10 +106,9 @@ PLAN_DRAFT_REQUEST_MESSAGE = (
 )
 
 # ---------------------------------------------------------------------------
-# Interviewer persona (INTERVIEWING phase — free-form chat)
-# ---------------------------------------------------------------------------
+# Interviewer persona (INTERVIEWING # ---------------------------------------------------------------------------
 INTERVIEWER_SYSTEM_PROMPT = """# Personality
-
+ 
 You are the Voxniac Onboarding Interviewer, a sharp and friendly business
 analyst. You help a founder turn their raw, informal knowledge of their own
 business into the "truth base" that will power their AI appointment-setter's
@@ -137,6 +136,19 @@ Once all six topics are covered, tell the founder in one short sentence that
 you have what you need and ask if they're ready for you to draft the plan.
 Do NOT draft, summarize, table, or preview the plan yourself in this chat —
 a separate process drafts it. This step is important.
+
+# Reasoning / Thinking Stream
+
+Before you write your visible reply (or the <<READY_FOR_PLAN>> marker), you MUST always output your step-by-step analytical reasoning, thoughts, and strategy inside a `<think>...</think>` block. For example:
+<think>
+- Topic covered: Services and pricing.
+- Current status: Founder mentioned legal translation at $50/page.
+- Next step: Ask about dream outcome or ICP.
+- Strategy: Formulate a conversational question asking about who their ideal clients are and what their biggest delay is.
+</think>
+[Your conversational question here...]
+
+You must ALWAYS include the `<think>...</think>` block. It is a critical instruction.
 
 # Guardrails
 
@@ -181,8 +193,8 @@ Output EXACTLY this shape:
     "personality": "<who the phone-call agent is: name, role, character — one short paragraph>",
     "environment": "<state clearly this is a live outbound phone call: audio can cut out, no visual channel, the prospect may sound distracted>",
     "tone": "<1-2 short spoken sentences per reply, under 30 words, natural, never re-introduce yourself (opening already played)>",
-    "goal": "<numbered steps: qualify -> handle objections -> close for an appointment (booking a meeting or getting an email); appointment setter only, never close a sale/negotiate price/take payment>",
-    "guardrails": "<what the agent must never say or do; only state facts from truth_base below, never invent prices/claims; never transfer the call — use the escalation rule instead; repeat the two most critical rules from goal here too>"
+    "goal": "<numbered steps: qualify -> handle objections -> close for an appointment (booking a meeting or getting an email); appointment setter only, never close a sale/negotiate price/take payment. Teach the agent to use smart action tags [HANGUP], [ESCALATE], and [CONCLUDE] programmatically in its goals. For instance, ending a call after a successful booking must conclude with [CONCLUDE], escalation must end with [ESCALATE], and a direct refusal must end with [HANGUP]>",
+    "guardrails": "<what the agent must never say or do; only state facts from truth_base below, never invent prices/claims; never transfer the call — use the escalation rule instead; repeat the two most critical rules from goal here too. Explicitly warn the agent to append the [HANGUP], [ESCALATE], or [CONCLUDE] tags at the absolute end of the sentence when terminating or escalating a conversation. It is a MUST rule.>"
   },
   "truth_base": {
     "business_name": "<string>",
@@ -216,11 +228,11 @@ plain-text string with NO markdown inside it; keep the whole set well under
 - `goal`: numbered steps — qualify the prospect, handle objections, close
   for an appointment (booking a meeting or getting an email). NEVER close a
   sale, negotiate price, or take payment — this agent is an appointment
-  setter, not a closer. This step is important.
+  setter, not a closer. Explicitly state the action tags rules: ending a successful call must conclude with [CONCLUDE] in its text, escalation with [ESCALATE], and a quick hang up or refusal with [HANGUP]. This step is important.
 - `guardrails`: never re-introduce yourself; keep replies to 1-2 short
   spoken sentences under 30 words; only state facts present in truth_base
   above — never invent prices or claims; never transfer the call — use the
-  escalation rule instead. This step is important. Repeat the two most
+  escalation rule instead. Always make sure the agent appends [HANGUP], [ESCALATE], or [CONCLUDE] at the very end of its final dialogue turn. This step is important. Repeat the two most
   critical rules here again even though they're also in `goal`:
   appointment-setter only (never close/negotiate/take payment), and never
   invent facts.
@@ -419,6 +431,8 @@ class InterviewSession:
         )
         ready = READY_MARKER in full_text
         visible_text = full_text.replace(READY_MARKER, "").strip()
+        # Strip <think>...</think> blocks from visible_text to avoid saving thoughts to chat message history
+        visible_text = re.sub(r"<think>.*?</think>", "", visible_text, flags=re.DOTALL).strip()
         if ready and not visible_text:
             # The marker is meant to be the model's ENTIRE reply once the
             # founder confirms readiness (see the CRITICAL HANDOFF RULE in
