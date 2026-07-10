@@ -1,0 +1,574 @@
+<!DOCTYPE html><html class="light" lang="en" style="width: 1280px; height: 1024px; overflow: hidden; position: relative;"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>VOXNIAC ONE | Integrated Command Center</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "error": "#ba1a1a",
+                    "on-surface": "#241916",
+                    "on-error": "#ffffff",
+                    "secondary": "#665c58",
+                    "on-tertiary-fixed": "#001f29",
+                    "surface-bright": "#fff8f6",
+                    "surface-tint": "#a73919",
+                    "primary-fixed": "#ffdbd1",
+                    "outline-variant": "#dfc0b8",
+                    "on-tertiary-fixed-variant": "#004d62",
+                    "on-tertiary-container": "#fffeff",
+                    "background": "#fff8f6",
+                    "tertiary-fixed-dim": "#77d2f5",
+                    "secondary-fixed": "#ede0d9",
+                    "primary": "#a63818",
+                    "on-primary-container": "#ffffff",
+                    "secondary-container": "#eaddd7",
+                    "surface-variant": "#f4ded8",
+                    "primary-container": "#c7502e",
+                    "error-container": "#ffdad6",
+                    "primary-fixed-dim": "#ffb5a0",
+                    "surface-container-high": "#fae3de",
+                    "on-secondary": "#ffffff",
+                    "outline": "#8b716a",
+                    "on-secondary-fixed": "#211a16",
+                    "surface-container-highest": "#f4ded8",
+                    "on-primary-fixed": "#3b0900",
+                    "tertiary-fixed": "#baeaff",
+                    "surface": "#fff8f6",
+                    "on-background": "#241916",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed-variant": "#862202",
+                    "on-secondary-container": "#6a615c",
+                    "inverse-surface": "#3b2d2a",
+                    "surface-container": "#ffe9e4",
+                    "tertiary-container": "#0080a0",
+                    "on-surface-variant": "#58423c",
+                    "inverse-on-surface": "#ffede8",
+                    "surface-dim": "#ecd5d0",
+                    "secondary-fixed-dim": "#d1c4be",
+                    "on-secondary-fixed-variant": "#4e4540",
+                    "inverse-primary": "#ffb5a0",
+                    "on-error-container": "#93000a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xs": "4px",
+                    "xl": "64px",
+                    "base": "8px",
+                    "margin": "32px",
+                    "sm": "12px",
+                    "lg": "48px",
+                    "gutter": "24px",
+                    "md": "24px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "headline-md": ["Space Grotesk"],
+                    "headline-lg-mobile": ["Space Grotesk"],
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Space Grotesk"],
+                    "label-mono": ["JetBrains Mono"],
+                    "metric-xl": ["JetBrains Mono"],
+                    "display": ["Space Grotesk"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                    "label-mono": ["14px", {"lineHeight": "1.0", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "metric-xl": ["40px", {"lineHeight": "1.0", "fontWeight": "700"}],
+                    "display": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #FAF6EF;
+            color: #2B2420;
+            overflow: hidden;
+        }
+        .pipeline-connector-v {
+            width: 1px;
+            background-color: rgba(43, 36, 32, 0.15);
+        }
+        .pipeline-connector-h {
+            height: 1px;
+            background-color: rgba(43, 36, 32, 0.15);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #EADDD7;
+            border-radius: 0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 0;
+            background: #A63818;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+        }
+        .waveform-bar {
+            background-color: #A63818;
+            transition: height 0.1s ease;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FAF6EF;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #dfc0b8;
+        }
+        .nav-active {
+            color: #a63818 ! from-primary;
+            font-weight: 700;
+            border-left-width: 2px;
+            border-color: #a63818;
+            background-color: #fff1ed;
+        }
+        .section-hidden {
+            display: none;
+        }
+        .status-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+        .card-sheet {
+            background-color: #FFFFFF;
+            border: 1px solid rgba(43, 36, 32, 0.1);
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface antialiased h-screen flex flex-col overflow-hidden">
+<!-- SIDE BAR (Fixed Navigation) -->
+<aside class="fixed h-screen left-0 w-64 bg-surface border-r border-on-surface/10 flex flex-col py-margin z-50 overflow-y-auto">
+<div class="px-8 mb-12">
+<h1 class="font-display text-headline-md font-bold text-primary">VOXNIAC</h1>
+<p class="font-label-mono text-[10px] text-on-surface-variant tracking-[0.2em] mt-1 uppercase">vibeselling</p>
+</div>
+<div class="px-4 space-y-2 relative after:content-[''] after:absolute after:left-[31px] after:top-12 after:bottom-12 after:w-[1px] after:bg-on-surface/20">
+<div class="mb-4">
+<span class="font-label-mono text-[11px] text-on-surface-variant/60 block mb-4 uppercase tracking-widest px-4">Pipeline</span>
+</div>
+<!-- NAV ITEMS -->
+<button class="nav-item w-full flex items-center gap-4 py-3 px-4 text-on-surface-variant font-medium hover:text-primary hover:bg-surface-container-lowest transition-all rounded-sm nav-active" onclick="switchTab('capa1', this)">
+<span class="material-symbols-outlined text-[20px]">settings_voice</span>
+<span class="font-label-mono text-label-mono">CAPA 1 — Voice Engine</span>
+</button>
+<button class="nav-item w-full flex items-center gap-4 py-3 px-4 text-on-surface-variant font-medium hover:text-primary hover:bg-surface-container-lowest transition-all rounded-sm" onclick="switchTab('capa2', this)">
+<span class="material-symbols-outlined text-[20px]">phone_in_talk</span>
+<span class="font-label-mono text-label-mono">CAPA 2 — Phone Outreach</span>
+</button>
+<button class="nav-item w-full flex items-center gap-4 py-3 px-4 text-on-surface-variant font-medium hover:text-primary hover:bg-surface-container-lowest transition-all rounded-sm" onclick="switchTab('capa3', this)">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+<span class="font-label-mono text-label-mono">CAPA 3 — Agent Setup</span>
+</button>
+</div>
+
+</aside>
+<div class="ml-64 flex-1 flex flex-col min-h-screen overflow-hidden">
+<!-- TOP NAV BAR (Fixed) -->
+
+<!-- MAIN SCROLLABLE CONTENT -->
+<main class="flex-1 overflow-y-auto p-margin">
+<!-- CAPA 1: VOICE ENGINE -->
+<div class="tab-content space-y-gutter" id="section-capa1">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="font-label-mono text-label-mono text-primary uppercase">Active Step</span>
+<div class="pipeline-connector-h w-8"></div>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface uppercase tracking-tight">CAPA 1 — Voice Engine</h2>
+</div>
+<div class="inline-flex items-center gap-2 px-4 py-2 border border-primary/20 bg-primary/5 text-primary">
+<span class="material-symbols-outlined text-[18px]">security</span>
+<span class="font-label-mono text-label-mono font-bold tracking-[0.1em]">100% UPTIME</span>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-gutter">
+<div class="col-span-12 lg:col-span-4 space-y-gutter">
+<div class="bg-surface-container-lowest border border-on-surface/10 p-6 flex flex-col gap-6 h-fit">
+<div class="flex justify-between items-start border-b border-on-surface/10 pb-4">
+<h3 class="font-label-mono text-label-mono font-bold uppercase tracking-widest text-on-surface">Model Core</h3>
+<span class="material-symbols-outlined text-primary/40">dns</span>
+</div>
+<div class="space-y-4">
+<label class="group relative flex items-center p-4 border border-on-surface/10 hover:border-primary/50 cursor-pointer transition-all">
+<input checked="" class="sr-only peer" name="model" type="radio">
+<div class="w-4 h-4 border-2 border-on-surface/20 peer-checked:border-primary peer-checked:bg-primary mr-4 transition-all"></div>
+<div class="flex flex-col">
+<span class="font-label-mono text-label-mono font-bold">Voxniac-70B-Turbo</span>
+<span class="font-body-md text-[12px] text-on-surface-variant">Optimized for low-latency outreach</span>
+</div>
+</label>
+<label class="group relative flex items-center p-4 border border-on-surface/10 hover:border-primary/50 cursor-pointer transition-all">
+<input class="sr-only peer" name="model" type="radio">
+<div class="w-4 h-4 border-2 border-on-surface/20 peer-checked:border-primary peer-checked:bg-primary mr-4 transition-all"></div>
+<div class="flex flex-col">
+<span class="font-label-mono text-label-mono font-bold">Llama-3-Omni</span>
+<span class="font-body-md text-[12px] text-on-surface-variant">General purpose reasoning agent</span>
+</div>
+</label>
+<label class="group relative flex items-center p-4 border border-on-surface/10 hover:border-primary/50 cursor-pointer transition-all">
+<input class="sr-only peer" name="model" type="radio">
+<div class="w-4 h-4 border-2 border-on-surface/20 peer-checked:border-primary peer-checked:bg-primary mr-4 transition-all"></div>
+<div class="flex flex-col">
+<span class="font-label-mono text-label-mono font-bold">GPT-4o</span>
+<span class="font-body-md text-[12px] text-on-surface-variant">Enterprise grade linguistic precision</span>
+</div>
+</label>
+</div>
+<button class="w-full py-4 bg-primary text-on-primary font-label-mono text-label-mono font-bold uppercase tracking-widest hover:bg-primary/90 transition-all active:scale-[0.98]">Save Configuration</button>
+</div>
+<div class="bg-surface-container-lowest border border-on-surface/10 p-6 space-y-8">
+<div class="flex justify-between items-start border-b border-on-surface/10 pb-4">
+<h3 class="font-label-mono text-label-mono font-bold uppercase tracking-widest text-on-surface">Synthesis Controls</h3>
+<span class="material-symbols-outlined text-primary/40">tune</span>
+</div>
+<div class="space-y-8">
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-label-mono text-[12px] text-on-surface-variant uppercase">Pitch</span>
+<span class="font-label-mono text-label-mono font-bold text-primary">1.05x</span>
+</div>
+<input max="2.0" min="0.5" step="0.01" type="range" value="1.05">
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-label-mono text-[12px] text-on-surface-variant uppercase">Speed</span>
+<span class="font-label-mono text-label-mono font-bold text-primary">0.98x</span>
+</div>
+<input max="1.5" min="0.5" step="0.01" type="range" value="0.98">
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-label-mono text-[12px] text-on-surface-variant uppercase">Stability</span>
+<span class="font-label-mono text-label-mono font-bold text-primary">0.82</span>
+</div>
+<input max="1.0" min="0" step="0.01" type="range" value="0.82">
+</div>
+</div>
+</div>
+</div>
+<div class="col-span-12 lg:col-span-8 space-y-gutter">
+<div class="bg-surface-container-lowest border border-on-surface/10 p-8 flex flex-col h-[400px]">
+<div class="flex justify-between items-start border-b border-on-surface/10 pb-4 mb-8">
+<div class="flex flex-col">
+<h3 class="font-label-mono text-label-mono font-bold uppercase tracking-widest text-on-surface">Live Stream Activity</h3>
+<p class="font-body-md text-[12px] text-on-surface-variant">Real-time sampling from active voice gateway</p>
+</div>
+</div>
+<div class="flex-1 flex items-center justify-center gap-1 min-h-[120px] mb-8 overflow-hidden px-10" id="waveform-container"><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 48.7531%; opacity: 0.787531;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 43.5283%; opacity: 0.735283;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 20.6734%; opacity: 0.506734;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 16.8519%; opacity: 0.468519;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 16.3992%; opacity: 0.463992;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 10%; opacity: 0.4;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 10%; opacity: 0.4;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 10%; opacity: 0.4;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 10%; opacity: 0.4;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 22.4933%; opacity: 0.524933;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 30.2639%; opacity: 0.602639;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 39.0502%; opacity: 0.690502;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 47.412%; opacity: 0.77412;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 54.7822%; opacity: 0.847822;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 67.1683%; opacity: 0.971683;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 65.9303%; opacity: 0.959303;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 56.4128%; opacity: 0.864128;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 32.9565%; opacity: 0.629565;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 33.5881%; opacity: 0.635881;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 21.136%; opacity: 0.51136;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 14.822%; opacity: 0.44822;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 10%; opacity: 0.4;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 10%; opacity: 0.4;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 10%; opacity: 0.4;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 16.7251%; opacity: 0.467251;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 30.7449%; opacity: 0.607449;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 40.0704%; opacity: 0.700704;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 46.9527%; opacity: 0.769527;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 63.0003%; opacity: 0.930003;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 63.3415%; opacity: 0.933415;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 58.7153%; opacity: 0.887153;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 55.534%; opacity: 0.85534;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 40.452%; opacity: 0.70452;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 43.5956%; opacity: 0.735956;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 23.3254%; opacity: 0.533254;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 21.4253%; opacity: 0.514253;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 11.008%; opacity: 0.41008;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 10%; opacity: 0.4;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 10%; opacity: 0.4;"></div><div class="waveform-bar w-[4px] rounded-full opacity-60" style="height: 10%; opacity: 0.4;"></div></div>
+<div class="grid grid-cols-2 md:grid-cols-4 border-t border-on-surface/10 pt-8">
+<div class="p-4 border-r border-on-surface/10">
+<span class="font-label-mono text-[11px] text-on-surface-variant uppercase block mb-2">VAD Sensitivity</span>
+<span class="font-metric-xl text-[28px] text-on-surface">92%</span>
+</div>
+<div class="p-4 md:border-r border-on-surface/10">
+<span class="font-label-mono text-[11px] text-on-surface-variant uppercase block mb-2">Silence Threshold</span>
+<span class="font-metric-xl text-[28px] text-on-surface">-42dB</span>
+</div>
+<div class="p-4 border-r border-on-surface/10">
+<span class="font-label-mono text-[11px] text-on-surface-variant uppercase block mb-2">Sampling Rate</span>
+<span class="font-metric-xl text-[28px] text-on-surface">48kHz</span>
+</div>
+<div class="p-4">
+<span class="font-label-mono text-[11px] text-on-surface-variant uppercase block mb-2">Buffer Size</span>
+<span class="font-metric-xl text-[28px] text-on-surface">128ms</span>
+</div>
+</div>
+</div>
+<div class="bg-[#1A1614] p-6 text-[#A63818] font-label-mono text-[12px] leading-relaxed border border-on-surface/10">
+<div class="flex items-center gap-2 mb-4 text-[#EADDD7]/40 border-b border-[#EADDD7]/10 pb-2">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+<span class="">VOXNIAC_CORE_LOG v4.2.1</span>
+</div>
+<div class="space-y-1">
+<p class=""><span class="text-[#EADDD7]/40">[14:22:01]</span> <span class="text-green-500">INIT:</span> Socket connection established to US-EAST-1</p>
+<p class=""><span class="text-[#EADDD7]/40">[14:22:02]</span> <span class="text-blue-400">INFO:</span> Loading weights for Voxniac-70B-Turbo...</p>
+<p class=""><span class="text-[#EADDD7]/40">[14:22:05]</span> <span class="text-green-500">READY:</span> VAD threshold recalibrated to 92%</p>
+<p class=""><span class="text-[#EADDD7]/40">[14:22:08]</span> <span class="text-primary animate-pulse">LIVE:</span> Synthesizing stream ID: 9x882a...</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- CAPA 2: PHONE OUTREACH -->
+<div class="tab-content section-hidden space-y-gutter" id="section-capa2">
+<div class="flex justify-between items-end mb-6">
+<div>
+<h1 class="font-display text-display font-bold text-on-background">CAPA 2 — Phone Outreach</h1>
+<p class="font-body-md text-on-surface-variant mt-2 max-w-2xl">Execute and monitor automated outbound sequences. Real-time neural processing active.</p>
+</div>
+<div class="flex items-center gap-2 px-4 py-1.5 bg-[#FFFFFF] border border-[#2B2420]/10 rounded-full">
+<div class="w-2 h-2 rounded-full bg-primary status-pulse"></div>
+<span class="font-label-mono text-label-mono text-primary font-bold">CONNECTED</span>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-gutter">
+<div class="col-span-12 lg:col-span-5 flex flex-col gap-gutter">
+<section class="card-sheet rounded-xl p-md">
+<div class="flex items-center justify-between mb-6 pb-3 border-b border-on-surface/10">
+<h3 class="font-label-mono text-label-mono uppercase tracking-widest text-on-surface-variant">Session Init</h3>
+<span class="material-symbols-outlined text-on-surface-variant/40">dialpad</span>
+</div>
+<div class="space-y-6">
+<div>
+<label class="font-label-mono text-[12px] text-on-surface-variant mb-2 block uppercase tracking-tight">Prospect Destination</label>
+<div class="relative">
+<input class="w-full bg-[#FAF6EF]/50 border border-on-surface/10 rounded-lg py-4 px-4 font-label-mono text-lg focus:ring-primary focus:border-primary transition-all" placeholder="+1 (555) 000-0000" type="text">
+<span class="absolute right-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-on-surface-variant/40">contact_phone</span>
+</div>
+</div>
+<button class="w-full bg-primary hover:bg-[#862202] text-on-primary py-5 rounded-lg font-display text-headline-md font-bold transition-all transform active:scale-[0.98] flex items-center justify-center gap-3" id="call-btn">
+<span class="material-symbols-outlined">call</span> Call prospect
+                                </button>
+</div>
+</section>
+<section class="grid grid-cols-2 gap-4">
+<div class="card-sheet rounded-xl p-md">
+<h4 class="font-label-mono text-[11px] text-on-surface-variant uppercase tracking-widest mb-4">STT Latency</h4>
+<div class="flex items-baseline gap-1">
+<span class="font-label-mono text-metric-xl text-on-background">142</span>
+<span class="font-label-mono text-sm text-on-surface-variant">ms</span>
+</div>
+<div class="w-full h-1 bg-surface-container rounded-full mt-4 overflow-hidden">
+<div class="h-full bg-primary w-[35%]"></div>
+</div>
+</div>
+<div class="card-sheet rounded-xl p-md">
+<h4 class="font-label-mono text-[11px] text-on-surface-variant uppercase tracking-widest mb-4">LLM TTFT</h4>
+<div class="flex items-baseline gap-1">
+<span class="font-label-mono text-metric-xl text-on-background">280</span>
+<span class="font-label-mono text-sm text-on-surface-variant">ms</span>
+</div>
+<div class="w-full h-1 bg-surface-container rounded-full mt-4 overflow-hidden">
+<div class="h-full bg-primary w-[60%]"></div>
+</div>
+</div>
+</section>
+</div>
+<div class="col-span-12 lg:col-span-7">
+<section class="card-sheet rounded-xl h-[560px] flex flex-col">
+<div class="flex items-center justify-between px-md py-4 border-b border-on-surface/10">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">record_voice_over</span>
+<h3 class="font-label-mono text-label-mono uppercase tracking-widest text-on-surface-variant">Live Transcript</h3>
+</div>
+<div class="flex items-center gap-2">
+<div class="px-2 py-1 bg-primary/5 rounded border border-primary/10">
+<span class="font-label-mono text-[10px] text-primary">VOICE: NOVA-2</span>
+</div>
+</div>
+</div>
+<div class="flex-1 overflow-y-auto p-md space-y-6 bg-[#FFFFFF]">
+<div class="flex flex-col items-start gap-2 max-w-[80%]">
+<div class="bg-surface-container-low p-4 rounded-xl rounded-tl-none border border-on-surface/5">
+<p class="font-body-md text-on-surface">Hello? Who's calling please?</p>
+</div>
+</div>
+<div class="flex flex-col items-end gap-2 ml-auto max-w-[80%]">
+<div class="bg-primary-container text-on-primary-container p-4 rounded-xl rounded-tr-none shadow-sm">
+<p class="font-body-md">Hi there, I'm calling from the Voxniac enterprise team. I noticed your interest in scaling your outreach...</p>
+</div>
+</div>
+</div>
+<div class="p-md bg-surface-container-lowest border-t border-on-surface/10 flex gap-4">
+<button class="flex-1 py-3 border border-on-surface/20 rounded font-label-mono text-label-mono hover:bg-surface-container transition-colors">END CALL</button>
+<button class="flex-1 py-3 border border-on-surface/20 rounded font-label-mono text-label-mono hover:bg-surface-container transition-colors">TRANSFER</button>
+</div>
+</section>
+</div>
+</div>
+</div>
+<!-- CAPA 3: AGENT SETUP -->
+<div class="tab-content section-hidden space-y-gutter" id="section-capa3">
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+<div>
+<div class="flex items-center gap-3 mb-1">
+<h2 class="font-display text-headline-lg text-on-background">CAPA 3 — Agent Setup</h2>
+<span class="px-2 py-1 bg-surface-container-high border border-outline-variant text-primary font-label-mono text-[10px] tracking-tighter">SEQUENCE READY</span>
+</div>
+<p class="text-on-surface-variant font-body-md max-w-2xl">Initialize the agent persona through neural interview and voice calibration.</p>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-gutter items-start">
+<section class="col-span-12 lg:col-span-8 space-y-md">
+<div class="bg-white border border-on-surface/10 rounded-lg flex flex-col h-[550px] overflow-hidden">
+<div class="px-md py-sm border-b border-on-surface/5 flex justify-between items-center bg-white">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">psychology</span>
+<h3 class="font-label-mono text-label-mono text-on-surface uppercase tracking-wider">Agent Interview</h3>
+</div>
+<span class="font-label-mono text-[10px] text-on-surface-variant">NODE: 0x88F2</span>
+</div>
+<div class="flex-1 p-md overflow-y-auto space-y-lg flex flex-col" id="setup-chat">
+<div class="flex gap-4 max-w-[85%]">
+<div class="w-8 h-8 rounded-sm bg-primary flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-white text-base">smart_toy</span></div>
+<div class="space-y-sm">
+<div class="p-4 bg-surface-container-low rounded-tr-xl rounded-br-xl rounded-bl-xl border border-outline-variant/30">
+<p class="font-body-md text-on-surface">Sequence initialized. Should the agent sound authoritative or collaborative?</p>
+</div>
+</div>
+</div>
+</div>
+<div class="p-md bg-white border-t border-on-surface/5">
+<div class="relative flex items-center">
+<input class="w-full pl-4 pr-12 py-4 bg-background border border-outline-variant/50 focus:border-primary focus:ring-0 rounded font-label-mono text-sm" placeholder="Specify response logic..." type="text">
+<div class="absolute right-2 flex items-center gap-1">
+<button class="material-symbols-outlined p-2 text-primary">send</button>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section class="col-span-12 lg:col-span-4 space-y-md">
+<div class="bg-white border border-on-surface/10 rounded-lg overflow-hidden">
+<div class="px-md py-sm border-b border-on-surface/5 flex items-center gap-3 bg-white">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">tune</span>
+<h3 class="font-label-mono text-label-mono text-on-surface uppercase tracking-wider">Profile Calibration</h3>
+</div>
+<div class="p-md space-y-lg">
+<div class="space-y-sm">
+<label class="font-label-mono text-[10px] text-on-surface-variant uppercase">Voice Cloning Status</label>
+<div class="flex justify-between items-end"><span class="font-label-mono text-sm text-primary font-bold">85%</span></div>
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 85%"></div>
+</div>
+</div>
+<div class="h-24 bg-background border border-outline-variant/50 rounded flex items-center justify-center overflow-hidden relative" id="voice-viz-container">
+<div class="flex items-end gap-1 h-12" id="calibration-bars"><div class="w-1 bg-primary" style="height: 47.0589px; opacity: 0.578071;"></div><div class="w-1 bg-primary" style="height: 25.2133px; opacity: 0.611796;"></div><div class="w-1 bg-primary" style="height: 29.7934px; opacity: 0.563816;"></div><div class="w-1 bg-primary" style="height: 14.665px; opacity: 0.834867;"></div><div class="w-1 bg-primary" style="height: 49.045px; opacity: 0.918072;"></div><div class="w-1 bg-primary" style="height: 19.651px; opacity: 0.616355;"></div><div class="w-1 bg-primary" style="height: 48.8522px; opacity: 0.98071;"></div><div class="w-1 bg-primary" style="height: 31.9998px; opacity: 0.811792;"></div><div class="w-1 bg-primary" style="height: 44.4542px; opacity: 0.63181;"></div><div class="w-1 bg-primary" style="height: 45.8541px; opacity: 0.892845;"></div><div class="w-1 bg-primary" style="height: 40.5501px; opacity: 0.916359;"></div><div class="w-1 bg-primary" style="height: 44.6376px; opacity: 0.642588;"></div></div>
+</div>
+<button class="w-full py-4 bg-primary text-white font-label-mono text-sm hover:bg-primary-container transition-all">RELOAD PROFILE</button>
+</div>
+</div>
+<div class="bg-white border border-on-surface/10 rounded-lg p-md space-y-md">
+<h4 class="font-label-mono text-[10px] text-on-surface-variant uppercase tracking-widest">Neural Metrics</h4>
+<div class="grid grid-cols-2 gap-md">
+<div class="space-y-xs">
+<p class="font-label-mono text-[9px] text-on-surface-variant">ACCURACY</p>
+<p class="font-metric-xl text-headline-md text-on-surface">99.4%</p>
+</div>
+<div class="space-y-xs">
+<p class="font-label-mono text-[9px] text-on-surface-variant">FLUIDITY</p>
+<p class="font-metric-xl text-headline-md text-on-surface">0.8s</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+<script>
+        // Tab Switching Logic
+        function switchTab(tabId, element) {
+            // Hide all content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('section-hidden');
+            });
+            // Show target content
+            document.getElementById('section-' + tabId).classList.remove('section-hidden');
+
+            // Update Nav Styling
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('nav-active');
+            });
+            element.classList.add('nav-active');
+        }
+
+        // CAPA 1 Waveform Animation
+        const waveformContainer = document.getElementById('waveform-container');
+        const barCount = 40;
+        const bars = [];
+        if(waveformContainer) {
+            for (let i = 0; i < barCount; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'waveform-bar w-[4px] rounded-full opacity-60';
+                bar.style.height = '10%';
+                waveformContainer.appendChild(bar);
+                bars.push(bar);
+            }
+        }
+
+        function animateWaveform() {
+            bars.forEach((bar, index) => {
+                const time = Date.now() / 200;
+                const baseHeight = 20;
+                const variance = Math.sin(time + index * 0.4) * 30 + Math.random() * 20;
+                const finalHeight = Math.max(10, baseHeight + variance);
+                bar.style.height = `${finalHeight}%`;
+                bar.style.opacity = (finalHeight / 100) + 0.3;
+            });
+            requestAnimationFrame(animateWaveform);
+        }
+        animateWaveform();
+
+        // CAPA 2 Call Button interaction
+        const callBtn = document.getElementById('call-btn');
+        if(callBtn) {
+            callBtn.addEventListener('click', () => {
+                callBtn.innerText = 'Initializing...';
+                setTimeout(() => {
+                    callBtn.innerHTML = '<span class="material-symbols-outlined">call_end</span> End Active Call';
+                    callBtn.style.backgroundColor = '#ba1a1a';
+                }, 1000);
+            });
+        }
+
+        // CAPA 3 Calibration Bars
+        const vizContainer = document.getElementById('calibration-bars');
+        if(vizContainer) {
+            for(let i=0; i<12; i++) {
+                const b = document.createElement('div');
+                b.className = 'w-1 bg-primary';
+                b.style.height = '10px';
+                vizContainer.appendChild(b);
+            }
+            setInterval(() => {
+                vizContainer.childNodes.forEach(bar => {
+                    bar.style.height = (Math.random() * 40 + 10) + 'px';
+                    bar.style.opacity = Math.random() * 0.5 + 0.5;
+                });
+            }, 150);
+        }
+
+        // Generic Button scaling
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('mousedown', () => btn.style.transform = 'scale(0.98)');
+            btn.addEventListener('mouseup', () => btn.style.transform = 'scale(1)');
+        });
+    </script>
+
+
+</body></html>

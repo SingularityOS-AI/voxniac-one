@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VOXNIAC ONE | Campaigns Control Room</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Space+Grotesk:wght@100..900&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-tint": "#a73919",
+                    "on-secondary": "#ffffff",
+                    "tertiary": "#004979",
+                    "on-surface-variant": "#58423c",
+                    "on-error-container": "#93000a",
+                    "on-secondary-container": "#6c1800",
+                    "on-tertiary-container": "#bcdaff",
+                    "secondary": "#a73919",
+                    "secondary-fixed": "#ffdbd1",
+                    "inverse-on-surface": "#ffede8",
+                    "on-tertiary-fixed": "#001d35",
+                    "on-tertiary-fixed-variant": "#00497a",
+                    "secondary-fixed-dim": "#ffb5a0",
+                    "tertiary-fixed-dim": "#9ccaff",
+                    "tertiary-fixed": "#d0e4ff",
+                    "primary-fixed-dim": "#ffb5a0",
+                    "on-surface": "#251916",
+                    "surface-container-lowest": "#ffffff",
+                    "on-background": "#251916",
+                    "inverse-surface": "#3b2d2a",
+                    "background": "#FAF6EF",
+                    "surface-container-highest": "#f4ded8",
+                    "on-primary-fixed-variant": "#862202",
+                    "surface-bright": "#fff8f6",
+                    "primary": "#852101",
+                    "primary-fixed": "#ffdbd1",
+                    "surface-container-high": "#fae3de",
+                    "on-primary": "#ffffff",
+                    "outline": "#8b716a",
+                    "surface-container": "#ffe9e4",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-container": "#00619f",
+                    "on-secondary-fixed-variant": "#862202",
+                    "surface-dim": "#ecd5d0",
+                    "surface": "#fff8f6",
+                    "on-secondary-fixed": "#3b0900",
+                    "secondary-container": "#fe7953",
+                    "surface-variant": "#f4ded8",
+                    "inverse-primary": "#ffb5a0",
+                    "error": "#ba1a1a",
+                    "on-primary-container": "#ffcbbe",
+                    "on-primary-fixed": "#3b0900",
+                    "on-error": "#ffffff",
+                    "primary-container": "#a63818",
+                    "surface-container-low": "#fff1ed",
+                    "outline-variant": "rgba(43, 36, 32, 0.15)",
+                    "error-container": "#ffdad6",
+                    "brand-ink": "#2B2420"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "base": "4px",
+                    "gutter": "24px",
+                    "margin-mobile": "16px",
+                    "margin-desktop": "40px",
+                    "pipeline-stroke": "1px"
+            },
+            "fontFamily": {
+                    "headline-sm": ["Space Grotesk"],
+                    "body-md": ["Inter"],
+                    "headline-lg": ["Space Grotesk"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Space Grotesk"],
+                    "status-label": ["JetBrains Mono"],
+                    "metric-value": ["JetBrains Mono"]
+            },
+            "fontSize": {
+                    "headline-sm": ["18px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                    "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "status-label": ["12px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "metric-value": ["20px", {"lineHeight": "1", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #FAF6EF;
+            color: #2B2420;
+            font-family: 'Inter', sans-serif;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .pipeline-v {
+            width: 1px;
+            background-color: rgba(43, 36, 32, 0.15);
+            position: absolute;
+        }
+        .pipeline-h {
+            height: 1px;
+            background-color: rgba(43, 36, 32, 0.15);
+            position: absolute;
+        }
+        .node-square {
+            width: 4px;
+            height: 4px;
+            background-color: #2B2420;
+            position: absolute;
+            z-index: 10;
+        }
+        @keyframes pulse-demo {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(0.98); }
+        }
+        .animate-pulse-demo {
+            animation: pulse-demo 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .console-text {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255,255,255,0.1) transparent;
+        }
+    </style>
+</head>
+<body class="overflow-hidden h-screen flex">
+<!-- Sidebar Navigation -->
+<aside class="flex flex-col h-full py-gutter border-r border-outline-variant/10 bg-surface-container-low dark:bg-surface-container-lowest w-64 shrink-0 z-40 relative">
+<div class="px-6 mb-10">
+<h1 class="text-headline-sm font-headline-sm uppercase tracking-widest text-on-surface">VOXNIAC ONE</h1>
+<div class="mt-8">
+<p class="text-status-label font-status-label opacity-60">Control Room</p>
+<div class="flex items-center gap-2 mt-1">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-body-md font-body-md text-on-surface">Active Session: 08:42:15</span>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center px-6 py-3 gap-3 text-on-surface-variant opacity-70 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">settings_voice</span>
+<span class="text-status-label font-status-label">01 Voice Engine</span>
+</a>
+<a class="flex items-center px-6 py-3 gap-3 text-on-surface-variant opacity-70 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">smart_toy</span>
+<span class="text-status-label font-status-label">02 Agent Setup</span>
+</a>
+<a class="flex items-center px-6 py-3 gap-3 text-on-surface-variant opacity-70 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined">phone_forwarded</span>
+<span class="text-status-label font-status-label">03 Phone Outreach</span>
+</a>
+<a class="flex items-center px-6 py-3 gap-3 text-on-primary-fixed-variant font-bold border-r-2 border-primary bg-surface-container-highest/50 transition-all" href="#">
+<span class="material-symbols-outlined">campaign</span>
+<span class="text-status-label font-status-label">04 Campaigns</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<button class="w-full bg-primary text-on-primary py-3 font-status-label text-status-label tracking-widest hover:opacity-90 transition-opacity">
+                UPGRADE PLAN
+            </button>
+<div class="mt-6 space-y-3 opacity-60">
+<a class="flex items-center gap-3 text-status-label font-status-label hover:opacity-100" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+                    Documentation
+                </a>
+<a class="flex items-center gap-3 text-status-label font-status-label hover:opacity-100" href="#">
+<span class="material-symbols-outlined">contact_support</span>
+                    Support
+                </a>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-w-0 bg-background relative">
+<!-- Top Navigation Bar -->
+<header class="flex justify-between items-center h-16 px-gutter w-full sticky top-0 z-50 bg-surface border-b border-outline-variant/20">
+<div class="flex items-center gap-8">
+<h2 class="text-headline-md font-headline-md font-bold tracking-tighter text-primary">CAMPAIGN HUB</h2>
+<div class="flex gap-4">
+<div class="flex flex-col">
+<span class="text-[10px] font-status-label opacity-40">HOT</span>
+<span class="text-metric-value font-metric-value text-secondary">24</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-status-label opacity-40">WARM</span>
+<span class="text-metric-value font-metric-value text-amber-600">89</span>
+</div>
+<div class="flex flex-col">
+<span class="text-[10px] font-status-label opacity-40">COLD</span>
+<span class="text-metric-value font-metric-value opacity-60">342</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="animate-pulse-demo flex items-center px-3 py-1 bg-surface-container-highest border border-primary/20 rounded-full">
+<span class="w-2 h-2 bg-primary rounded-full mr-2"></span>
+<span class="text-status-label font-status-label text-primary">DEMO SAFE MODE</span>
+</div>
+<button class="bg-primary-container text-on-primary px-6 py-2 font-status-label text-status-label tracking-widest flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">upload_file</span>
+                    IMPORT CSV
+                </button>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined">notifications</span></button>
+<button class="p-2 hover:bg-surface-container-high transition-colors"><span class="material-symbols-outlined">settings</span></button>
+</div>
+</div>
+</header>
+<!-- Dynamic Content Grid -->
+<div class="flex-1 overflow-hidden p-margin-desktop flex gap-gutter relative">
+<!-- Pipeline Decorative lines -->
+<div class="pipeline-h top-10 left-0 right-0 opacity-10"></div>
+<div class="node-square top-[38px] left-[38px]"></div>
+<!-- Leads Table Card -->
+<section class="flex-[1.8] flex flex-col bg-white border border-outline-variant shadow-sm relative z-10 min-w-0">
+<div class="h-12 border-b border-outline-variant px-4 flex items-center justify-between">
+<span class="text-status-label font-status-label text-brand-ink/60 uppercase">Active Leads Pipeline</span>
+<span class="text-status-label font-status-label opacity-40">455 total records</span>
+</div>
+<div class="flex-1 overflow-auto">
+<table class="w-full text-left border-collapse">
+<thead class="sticky top-0 bg-white z-20">
+<tr class="border-b border-outline-variant">
+<th class="p-4 text-status-label font-status-label opacity-40 font-normal">CONTACT</th>
+<th class="p-4 text-status-label font-status-label opacity-40 font-normal">COMPANY</th>
+<th class="p-4 text-status-label font-status-label opacity-40 font-normal">INDUSTRY</th>
+<th class="p-4 text-status-label font-status-label opacity-40 font-normal">PHONE</th>
+<th class="p-4 text-status-label font-status-label opacity-40 font-normal">STATUS</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/5 text-body-md font-body-md">
+<tr class="hover:bg-surface-container-low cursor-pointer transition-colors group bg-surface-container-high/20">
+<td class="p-4 flex items-center gap-2">
+<span class="font-medium text-brand-ink">Alexander Vance</span>
+<span class="text-[16px]" title="High Value Account">🐋</span>
+</td>
+<td class="p-4 opacity-70">Aether Dynamic</td>
+<td class="p-4 opacity-70">Robotics</td>
+<td class="p-4 font-status-label">+1305•••4821</td>
+<td class="p-4">
+<span class="inline-block px-3 py-1 bg-secondary text-on-primary text-status-label font-status-label rounded-sm">HOT</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low cursor-pointer transition-colors">
+<td class="p-4">Sarah Jenkins</td>
+<td class="p-4 opacity-70">CloudScale Inc</td>
+<td class="p-4 opacity-70">SaaS</td>
+<td class="p-4 font-status-label">+1415•••9912</td>
+<td class="p-4">
+<span class="inline-block px-3 py-1 border border-amber-500 text-amber-700 text-status-label font-status-label rounded-sm">WARM</span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-low cursor-pointer transition-colors">
+<td class="p-4">Michael Thorne</td>
+<td class="p-4 opacity-70">Blackwood Partners</td>
+<td class="p-4 opacity-70">Logistics</td>
+<td class="p-4 font-status-label">+1212•••3345</td>
+<td class="p-4">
+<span class="inline-block px-3 py-1 border border-brand-ink/40 text-brand-ink/60 text-status-label font-status-label rounded-sm">COLD</span>
+</td>
+</tr>
+<!-- Repeatable data rows -->
+<tr class="hover:bg-surface-container-low cursor-pointer transition-colors">
+<td class="p-4">Elena Rodiguez</td>
+<td class="p-4 opacity-70">VentureStream</td>
+<td class="p-4 opacity-70">Fintech</td>
+<td class="p-4 font-status-label">+1650•••1182</td>
+<td class="p-4">
+<span class="inline-block px-3 py-1 border border-amber-500 text-amber-700 text-status-label font-status-label rounded-sm">WARM</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Lead Detail Panel -->
+<section class="flex-1 flex flex-col bg-white border border-outline-variant shadow-sm z-10 relative">
+<div class="h-12 border-b border-outline-variant px-4 flex items-center justify-between">
+<span class="text-status-label font-status-label text-brand-ink/60 uppercase">Lead Intelligence</span>
+<button class="text-brand-ink/40 hover:text-brand-ink transition-colors"><span class="material-symbols-outlined">close</span></button>
+</div>
+<div class="flex-1 overflow-y-auto p-6 space-y-6">
+<!-- Profile Header -->
+<div class="flex items-start gap-4">
+<div class="w-16 h-16 bg-surface-container border border-outline-variant flex items-center justify-center text-primary font-headline-md">AV</div>
+<div>
+<h3 class="text-headline-sm font-headline-sm">Alexander Vance</h3>
+<p class="text-body-md opacity-60">Director of Operations @ Aether Dynamic</p>
+</div>
+</div>
+<!-- Pain Points -->
+<div>
+<h4 class="text-status-label font-status-label text-brand-ink/40 mb-3 uppercase tracking-wider">Known Pain Points</h4>
+<ul class="space-y-2">
+<li class="flex items-start gap-2 text-body-md">
+<span class="material-symbols-outlined text-[18px] text-secondary mt-0.5">priority_high</span>
+                                High latency in current customer outreach pipelines.
+                            </li>
+<li class="flex items-start gap-2 text-body-md">
+<span class="material-symbols-outlined text-[18px] text-secondary mt-0.5">priority_high</span>
+                                Budget constraints for 24/7 human-operated call centers.
+                            </li>
+<li class="flex items-start gap-2 text-body-md">
+<span class="material-symbols-outlined text-[18px] text-secondary mt-0.5">priority_high</span>
+                                Needs hyper-personalized voice cloning for brand consistency.
+                            </li>
+</ul>
+</div>
+<!-- Prompt Configuration -->
+<div class="space-y-4">
+<div class="flex flex-col gap-2">
+<label class="text-status-label font-status-label text-brand-ink/40 uppercase">First Message Script</label>
+<textarea class="w-full bg-surface border border-outline-variant p-3 text-body-md font-body-md h-24 resize-none focus:border-secondary outline-none transition-colors" placeholder="Type opening greeting...">"Hey Alexander, I noticed Aether Dynamic is scaling their operations. I've got a framework that handles the latency issues you're seeing in outreach. Got a minute?"</textarea>
+</div>
+<div class="flex flex-col gap-2">
+<label class="text-status-label font-status-label text-brand-ink/40 uppercase">Agent System Prompt</label>
+<textarea class="w-full bg-surface border border-outline-variant p-3 text-status-label font-status-label h-40 resize-none focus:border-secondary outline-none transition-colors" placeholder="Define agent behavior...">ROLE: Senior Consultant.
+TONE: Direct, empathetic, data-driven.
+RULE 1: Never interrupt the user.
+RULE 2: If price is mentioned, pivot to ROI metrics immediately.
+RULE 3: Maintain 'Paper-Tech' archival aesthetic in verbal delivery.</textarea>
+</div>
+</div>
+<!-- Action Buttons -->
+<div class="grid grid-cols-2 gap-4">
+<button class="border border-brand-ink text-brand-ink py-3 font-status-label text-status-label tracking-widest hover:bg-brand-ink/5 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">auto_awesome</span>
+                            GENERATE PROMPT
+                        </button>
+<button class="bg-primary text-on-primary py-3 font-status-label text-status-label tracking-widest hover:opacity-90 transition-opacity flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">call</span>
+                            CALL NOW
+                        </button>
+</div>
+<!-- Transcript Console -->
+<div class="bg-brand-ink text-white p-4 font-status-label border border-outline-variant h-48 overflow-hidden flex flex-col">
+<div class="flex justify-between items-center mb-2 border-b border-white/10 pb-2">
+<span class="text-[10px] opacity-60">LIVE TRANSCRIPT NODE_882</span>
+<span class="text-[10px] text-green-400 animate-pulse">● RECORDING</span>
+</div>
+<div class="console-text flex-1 overflow-y-auto space-y-2 text-[11px] leading-relaxed" id="transcript-feed">
+<p class="opacity-40">-- INITIATING SESSION --</p>
+<p><span class="text-secondary">[SYSTEM]</span> HANDSHAKE SUCCESSFUL</p>
+<p><span class="text-secondary">[SYSTEM]</span> LOADING VOICE_PROFILE: 'HUMAN_WARM_01'</p>
+<p><span class="text-secondary">[SYSTEM]</span> READY FOR INPUT...</p>
+<p class="text-white/80">User: "Connecting now..."</p>
+<p class="text-white/80">Agent: "Hello? Is this Alexander?"</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Footer / Technical Stats -->
+<footer class="h-8 border-t border-outline-variant/20 px-gutter flex items-center justify-between bg-surface-container-low text-[10px] font-status-label opacity-40">
+<div class="flex gap-6">
+<span>SYSTEM_V: 1.0.4-STABLE</span>
+<span>LATENCY: 42MS</span>
+<span>PIPELINE: ACTIVE</span>
+</div>
+<div>
+                © 2024 VOXNIAC TECHNOLOGIES
+            </div>
+</footer>
+</main>
+<!-- Micro-interaction Scripts -->
+<script>
+        // Simulate live transcript updates
+        const feed = document.getElementById('transcript-feed');
+        const lines = [
+            "Agent: 'I was looking at your recent expansion report...'",
+            "[AI] Analyzing sentiment: POSITIVE (0.88)",
+            "Alexander: 'Yeah, we're growing, but it's messy right now.'",
+            "[SYSTEM] Detecting pain point: SCALABILITY",
+            "Agent: 'I completely understand. Messy is expensive...'",
+            "Alexander: 'Exactly. Tell me more about the framework.'"
+        ];
+        
+        let i = 0;
+        setInterval(() => {
+            if (i < lines.length) {
+                const p = document.createElement('p');
+                p.className = 'text-white/80 animate-in fade-in slide-in-from-bottom-1 duration-500';
+                p.innerHTML = lines[i].includes('[AI]') || lines[i].includes('[SYSTEM]') 
+                    ? `<span class="text-secondary">${lines[i].split(' ')[0]}</span> ${lines[i].split(' ').slice(1).join(' ')}` 
+                    : lines[i];
+                feed.appendChild(p);
+                feed.scrollTop = feed.scrollHeight;
+                i++;
+            }
+        }, 4000);
+    </script>
+</body></html>

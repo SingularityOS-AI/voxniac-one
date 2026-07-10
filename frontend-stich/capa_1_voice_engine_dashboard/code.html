@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VOXNIAC ONE | CAPA 1 — Voice Engine</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;family=Inter:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "error": "#ba1a1a",
+                    "on-surface": "#241916",
+                    "on-error": "#ffffff",
+                    "secondary": "#665c58",
+                    "on-tertiary-fixed": "#001f29",
+                    "surface-bright": "#fff8f6",
+                    "surface-tint": "#a73919",
+                    "primary-fixed": "#ffdbd1",
+                    "outline-variant": "#dfc0b8",
+                    "on-tertiary-fixed-variant": "#004d62",
+                    "on-tertiary-container": "#fffeff",
+                    "background": "#fff8f6",
+                    "tertiary-fixed-dim": "#77d2f5",
+                    "secondary-fixed": "#ede0d9",
+                    "primary": "#a63818",
+                    "on-primary-container": "#ffffff",
+                    "secondary-container": "#eaddd7",
+                    "surface-variant": "#f4ded8",
+                    "primary-container": "#c7502e",
+                    "error-container": "#ffdad6",
+                    "primary-fixed-dim": "#ffb5a0",
+                    "surface-container-high": "#fae3de",
+                    "on-secondary": "#ffffff",
+                    "outline": "#8b716a",
+                    "on-secondary-fixed": "#211a16",
+                    "surface-container-highest": "#f4ded8",
+                    "on-primary-fixed": "#3b0900",
+                    "tertiary-fixed": "#baeaff",
+                    "surface": "#fff8f6",
+                    "on-background": "#241916",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed-variant": "#862202",
+                    "on-secondary-container": "#6a615c",
+                    "inverse-surface": "#3b2d2a",
+                    "surface-container": "#ffe9e4",
+                    "tertiary-container": "#0080a0",
+                    "on-surface-variant": "#58423c",
+                    "inverse-on-surface": "#ffede8",
+                    "surface-dim": "#ecd5d0",
+                    "secondary-fixed-dim": "#d1c4be",
+                    "on-secondary-fixed-variant": "#4e4540",
+                    "inverse-primary": "#ffb5a0",
+                    "on-error-container": "#93000a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "xs": "4px",
+                    "xl": "64px",
+                    "base": "8px",
+                    "margin": "32px",
+                    "sm": "12px",
+                    "lg": "48px",
+                    "gutter": "24px",
+                    "md": "24px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "headline-md": ["Space Grotesk"],
+                    "headline-lg-mobile": ["Space Grotesk"],
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Space Grotesk"],
+                    "label-mono": ["JetBrains Mono"],
+                    "metric-xl": ["JetBrains Mono"],
+                    "display": ["Space Grotesk"]
+            },
+            "fontSize": {
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "500"}],
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                    "label-mono": ["14px", {"lineHeight": "1.0", "letterSpacing": "0.05em", "fontWeight": "500"}],
+                    "metric-xl": ["40px", {"lineHeight": "1.0", "fontWeight": "700"}],
+                    "display": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #FAF6EF;
+            color: #2B2420;
+            overflow-x: hidden;
+        }
+        .pipeline-connector-v {
+            width: 1px;
+            background-color: rgba(43, 36, 32, 0.15);
+        }
+        .pipeline-connector-h {
+            height: 1px;
+            background-color: rgba(43, 36, 32, 0.15);
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #EADDD7;
+            border-radius: 0;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            height: 16px;
+            width: 16px;
+            border-radius: 0;
+            background: #A63818;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+        }
+        .waveform-bar {
+            background-color: #A63818;
+            transition: height 0.1s ease;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FAF6EF;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #dfc0b8;
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-surface antialiased">
+<!-- SIDE BAR (Shared Component Anchor) -->
+<aside class="fixed h-screen left-0 w-64 bg-surface dark:bg-surface-container-lowest border-r border-on-surface/10 flex flex-col py-margin z-50">
+<div class="px-8 mb-12">
+<h1 class="font-display text-headline-md font-bold text-primary">VOXNIAC</h1>
+<p class="font-label-mono text-[10px] text-on-surface-variant tracking-[0.2em] mt-1 uppercase">Kernel Phase One</p>
+</div>
+<div class="px-6 space-y-2 relative after:content-[''] after:absolute after:left-[31px] after:top-12 after:bottom-12 after:w-[1px] after:bg-on-surface/20">
+<div class="mb-4">
+<span class="font-label-mono text-[11px] text-on-surface-variant/60 block mb-4 uppercase tracking-widest px-4">Pipeline</span>
+</div>
+<!-- CAPA 1 - ACTIVE -->
+<a class="flex items-center gap-4 py-3 px-4 text-primary font-bold border-l-2 border-primary bg-surface-container-low transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">settings_voice</span>
+<span class="font-label-mono text-label-mono">CAPA 1 — Voice Engine</span>
+</a>
+<!-- CAPA 2 -->
+<a class="flex items-center gap-4 py-3 px-4 text-on-surface-variant font-medium hover:text-primary hover:bg-surface-container-lowest transition-all group" href="#">
+<span class="material-symbols-outlined text-[20px]">phone_in_talk</span>
+<span class="font-label-mono text-label-mono">CAPA 2 — Phone Outreach</span>
+</a>
+<!-- CAPA 3 -->
+<a class="flex items-center gap-4 py-3 px-4 text-on-surface-variant font-medium hover:text-primary hover:bg-surface-container-lowest transition-all group" href="#">
+<span class="material-symbols-outlined text-[20px]">smart_toy</span>
+<span class="font-label-mono text-label-mono">CAPA 3 — Agent Setup</span>
+</a>
+</div>
+<div class="mt-auto px-6 space-y-2">
+<a class="flex items-center gap-4 py-3 px-4 text-on-surface-variant font-medium hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">analytics</span>
+<span class="font-label-mono text-label-mono">Diagnostics</span>
+</a>
+<a class="flex items-center gap-4 py-3 px-4 text-on-surface-variant font-medium hover:text-primary transition-all" href="#">
+<span class="material-symbols-outlined text-[20px]">terminal</span>
+<span class="font-label-mono text-label-mono">Terminal</span>
+</a>
+</div>
+</aside>
+<div class="ml-64 min-h-screen flex flex-col">
+<!-- TOP NAV BAR (Shared Component Anchor) -->
+<header class="sticky top-0 z-40 bg-background/80 backdrop-blur-md border-b border-on-surface/10 flex justify-between items-center w-full px-margin py-sm">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary-container">memory</span>
+<div class="flex flex-col">
+<span class="font-display text-headline-md font-bold tracking-tight text-on-background">VOXNIAC ONE</span>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center gap-2 px-3 py-1 bg-surface-container-low rounded-full">
+<div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+<span class="font-label-mono text-[11px] font-bold text-on-surface">KERNEL: ONLINE</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">settings</button>
+<div class="w-8 h-8 bg-surface-container-highest rounded-full overflow-hidden border border-on-surface/10">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a technical operator in a dark, high-tech command center. The lighting is low-key with subtle orange highlights on the side of the face, mirroring the brand's primary accent color. The background features blurred digital readouts on glass panels, maintaining a minimalist and authoritative aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCCL42Iwf8iLE-wCSa8ZY8jo0eFjojq6G7ikU9WyKwGELCpl-fPuzik9J5zh84XW4oJtBjhC7OEYXLSakVRFEnvPEP3sXxyYtqyuykSC21FSeLQMI3T_H0Y5pN9AzYUUGLawSQ3XTajvQwQ_kdSvyNN2qWjwHjJc55VDujeSBTfbOTKxG-QlfIcT8zpdMSzGBcjn5uEy5kFyNJHsA6W__FLa8dGgBsE3zDW0IxIp1dSHSvTUqKeGAnyBVa8ydbvVrW57YcvWFyas_c"/>
+</div>
+</div>
+</div>
+</header>
+<!-- MAIN CANVAS -->
+<main class="flex-1 p-margin space-y-gutter">
+<!-- HEADER SECTION -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="font-label-mono text-label-mono text-primary uppercase">Active Step</span>
+<div class="pipeline-connector-h w-8"></div>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface uppercase tracking-tight">CAPA 1 — Voice Engine</h2>
+</div>
+<div class="inline-flex items-center gap-2 px-4 py-2 border border-primary/20 bg-primary/5 text-primary">
+<span class="material-symbols-outlined text-[18px]">security</span>
+<span class="font-label-mono text-label-mono font-bold tracking-[0.1em]">TUNNEL UP</span>
+</div>
+</div>
+<!-- CONTENT GRID -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- COLUMN 1: CONFIGURATION -->
+<div class="col-span-12 lg:col-span-4 space-y-gutter">
+<!-- LLM MODEL SELECTION -->
+<div class="bg-surface-container-lowest border border-on-surface/10 p-6 flex flex-col gap-6 h-fit">
+<div class="flex justify-between items-start border-b border-on-surface/10 pb-4">
+<h3 class="font-label-mono text-label-mono font-bold uppercase tracking-widest text-on-surface">Model Core</h3>
+<span class="material-symbols-outlined text-primary/40">dns</span>
+</div>
+<div class="space-y-4">
+<label class="group relative flex items-center p-4 border border-on-surface/10 hover:border-primary/50 cursor-pointer transition-all">
+<input checked="" class="sr-only peer" name="model" type="radio"/>
+<div class="w-4 h-4 border-2 border-on-surface/20 peer-checked:border-primary peer-checked:bg-primary mr-4 transition-all"></div>
+<div class="flex flex-col">
+<span class="font-label-mono text-label-mono font-bold">Voxniac-70B-Turbo</span>
+<span class="font-body-md text-[12px] text-on-surface-variant">Optimized for low-latency outreach</span>
+</div>
+</label>
+<label class="group relative flex items-center p-4 border border-on-surface/10 hover:border-primary/50 cursor-pointer transition-all">
+<input class="sr-only peer" name="model" type="radio"/>
+<div class="w-4 h-4 border-2 border-on-surface/20 peer-checked:border-primary peer-checked:bg-primary mr-4 transition-all"></div>
+<div class="flex flex-col">
+<span class="font-label-mono text-label-mono font-bold">Llama-3-Omni</span>
+<span class="font-body-md text-[12px] text-on-surface-variant">General purpose reasoning agent</span>
+</div>
+</label>
+<label class="group relative flex items-center p-4 border border-on-surface/10 hover:border-primary/50 cursor-pointer transition-all">
+<input class="sr-only peer" name="model" type="radio"/>
+<div class="w-4 h-4 border-2 border-on-surface/20 peer-checked:border-primary peer-checked:bg-primary mr-4 transition-all"></div>
+<div class="flex flex-col">
+<span class="font-label-mono text-label-mono font-bold">GPT-4o</span>
+<span class="font-body-md text-[12px] text-on-surface-variant">Enterprise grade linguistic precision</span>
+</div>
+</label>
+</div>
+<button class="w-full py-4 bg-primary text-on-primary font-label-mono text-label-mono font-bold uppercase tracking-widest hover:bg-primary/90 transition-all active:scale-[0.98]">
+                            Save Configuration
+                        </button>
+</div>
+<!-- VOICE ENGINE SETTINGS -->
+<div class="bg-surface-container-lowest border border-on-surface/10 p-6 space-y-8">
+<div class="flex justify-between items-start border-b border-on-surface/10 pb-4">
+<h3 class="font-label-mono text-label-mono font-bold uppercase tracking-widest text-on-surface">Synthesis Controls</h3>
+<span class="material-symbols-outlined text-primary/40">tune</span>
+</div>
+<div class="space-y-8">
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-label-mono text-[12px] text-on-surface-variant uppercase">Pitch</span>
+<span class="font-label-mono text-label-mono font-bold text-primary">1.05x</span>
+</div>
+<input max="2.0" min="0.5" step="0.01" type="range" value="1.05"/>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-label-mono text-[12px] text-on-surface-variant uppercase">Speed</span>
+<span class="font-label-mono text-label-mono font-bold text-primary">0.98x</span>
+</div>
+<input max="1.5" min="0.5" step="0.01" type="range" value="0.98"/>
+</div>
+<div class="space-y-4">
+<div class="flex justify-between items-center">
+<span class="font-label-mono text-[12px] text-on-surface-variant uppercase">Stability</span>
+<span class="font-label-mono text-label-mono font-bold text-primary">0.82</span>
+</div>
+<input max="1.0" min="0" step="0.01" type="range" value="0.82"/>
+</div>
+</div>
+</div>
+</div>
+<!-- COLUMN 2: LIVE METRICS & LATENCY -->
+<div class="col-span-12 lg:col-span-8 space-y-gutter">
+<!-- LIVE ENGINE METRICS -->
+<div class="bg-surface-container-lowest border border-on-surface/10 p-8 flex flex-col h-[400px]">
+<div class="flex justify-between items-start border-b border-on-surface/10 pb-4 mb-8">
+<div class="flex flex-col">
+<h3 class="font-label-mono text-label-mono font-bold uppercase tracking-widest text-on-surface">Live Stream Activity</h3>
+<p class="font-body-md text-[12px] text-on-surface-variant">Real-time sampling from active voice gateway</p>
+</div>
+<div class="flex gap-2">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+<span class="w-2 h-2 rounded-full bg-primary/20"></span>
+<span class="w-2 h-2 rounded-full bg-primary/20"></span>
+</div>
+</div>
+<!-- WAVEFORM VISUALIZATION -->
+<div class="flex-1 flex items-center justify-center gap-1 min-h-[120px] mb-8 overflow-hidden px-10" id="waveform-container">
+<!-- Dynamic Bars will be injected via JS -->
+</div>
+<!-- TECHNICAL METRICS GRID -->
+<div class="grid grid-cols-2 md:grid-cols-4 border-t border-on-surface/10 pt-8">
+<div class="p-4 border-r border-on-surface/10">
+<span class="font-label-mono text-[11px] text-on-surface-variant uppercase block mb-2">VAD Sensitivity</span>
+<span class="font-metric-xl text-[28px] text-on-surface">92%</span>
+</div>
+<div class="p-4 md:border-r border-on-surface/10">
+<span class="font-label-mono text-[11px] text-on-surface-variant uppercase block mb-2">Silence Threshold</span>
+<span class="font-metric-xl text-[28px] text-on-surface">-42dB</span>
+</div>
+<div class="p-4 border-r border-on-surface/10">
+<span class="font-label-mono text-[11px] text-on-surface-variant uppercase block mb-2">Sampling Rate</span>
+<span class="font-metric-xl text-[28px] text-on-surface">48kHz</span>
+</div>
+<div class="p-4">
+<span class="font-label-mono text-[11px] text-on-surface-variant uppercase block mb-2">Buffer Size</span>
+<span class="font-metric-xl text-[28px] text-on-surface">128ms</span>
+</div>
+</div>
+</div>
+<!-- LATENCY TILES -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<div class="bg-surface-container-lowest border border-on-surface/10 p-6 flex flex-col justify-between">
+<span class="font-label-mono text-[11px] text-on-surface-variant uppercase mb-4 block">STT Process</span>
+<div class="flex items-baseline gap-1">
+<span class="font-metric-xl text-[32px] text-on-surface">42</span>
+<span class="font-label-mono text-[12px] text-on-surface-variant">ms</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-on-surface/10 p-6 flex flex-col justify-between relative overflow-hidden">
+<div class="absolute top-0 right-0 p-2 opacity-10">
+<span class="material-symbols-outlined text-[48px]">psychology</span>
+</div>
+<span class="font-label-mono text-[11px] text-on-surface-variant uppercase mb-4 block">Inference</span>
+<div class="flex items-baseline gap-1">
+<span class="font-metric-xl text-[32px] text-primary">118</span>
+<span class="font-label-mono text-[12px] text-primary/60">ms</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest border border-on-surface/10 p-6 flex flex-col justify-between">
+<span class="font-label-mono text-[11px] text-on-surface-variant uppercase mb-4 block">TTS Synthesis</span>
+<div class="flex items-baseline gap-1">
+<span class="font-metric-xl text-[32px] text-on-surface">65</span>
+<span class="font-label-mono text-[12px] text-on-surface-variant">ms</span>
+</div>
+</div>
+<div class="bg-primary p-6 flex flex-col justify-between">
+<span class="font-label-mono text-[11px] text-on-primary/60 uppercase mb-4 block">Total Overhead</span>
+<div class="flex items-baseline gap-1">
+<span class="font-metric-xl text-[32px] text-on-primary">225</span>
+<span class="font-label-mono text-[12px] text-on-primary/60">ms</span>
+</div>
+</div>
+</div>
+<!-- SYSTEM FEEDBACK / CLI AREA -->
+<div class="bg-[#1A1614] p-6 text-[#A63818] font-label-mono text-[12px] leading-relaxed border border-on-surface/10">
+<div class="flex items-center gap-2 mb-4 text-[#EADDD7]/40 border-b border-[#EADDD7]/10 pb-2">
+<span class="material-symbols-outlined text-[16px]">terminal</span>
+<span>VOXNIAC_CORE_LOG v4.2.1</span>
+</div>
+<div class="space-y-1">
+<p><span class="text-[#EADDD7]/40">[14:22:01]</span> <span class="text-green-500">INIT:</span> Socket connection established to US-EAST-1</p>
+<p><span class="text-[#EADDD7]/40">[14:22:02]</span> <span class="text-blue-400">INFO:</span> Loading weights for Voxniac-70B-Turbo...</p>
+<p><span class="text-[#EADDD7]/40">[14:22:05]</span> <span class="text-green-500">READY:</span> VAD threshold recalibrated to 92%</p>
+<p><span class="text-[#EADDD7]/40">[14:22:08]</span> <span class="text-primary animate-pulse">LIVE:</span> Synthesizing stream ID: 9x882a...</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+        // Waveform Animation Logic
+        const container = document.getElementById('waveform-container');
+        const barCount = 40;
+        const bars = [];
+
+        for (let i = 0; i < barCount; i++) {
+            const bar = document.createElement('div');
+            bar.className = 'waveform-bar w-[4px] rounded-full opacity-60';
+            bar.style.height = '10%';
+            container.appendChild(bar);
+            bars.push(bar);
+        }
+
+        function animateWaveform() {
+            bars.forEach((bar, index) => {
+                // Create a dynamic, somewhat organic look
+                const time = Date.now() / 200;
+                const baseHeight = 20;
+                const variance = Math.sin(time + index * 0.4) * 30 + Math.random() * 20;
+                const finalHeight = Math.max(10, baseHeight + variance);
+                
+                bar.style.height = `${finalHeight}%`;
+                // Pulse opacity with height
+                bar.style.opacity = (finalHeight / 100) + 0.3;
+            });
+            requestAnimationFrame(animateWaveform);
+        }
+
+        animateWaveform();
+
+        // Interaction micro-effects
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('mousedown', () => {
+                btn.style.transform = 'scale(0.98)';
+            });
+            btn.addEventListener('mouseup', () => {
+                btn.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body></html>
