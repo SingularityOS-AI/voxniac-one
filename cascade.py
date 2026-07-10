@@ -143,6 +143,7 @@ class CascadeSession:
     def __init__(
         self, transport, stt_cfg: dict, llm_cfg: dict, tts_cfg: dict, profile: dict,
         call_id: "str | None" = None, channel: str = "unknown",
+        system_prompt_override: "str | None" = None,
     ):
         self.transport = transport
         self.stt_cfg = stt_cfg  # {"encoding": "linear16"|"mulaw", "sample_rate": int}
@@ -155,6 +156,15 @@ class CascadeSession:
         # working unchanged.
         self.call_id = call_id
         self.channel = channel
+        # Phase 4 Etapa C: per-lead system prompt override (POST /leads/{id}
+        # /call). None (the default, every pre-existing caller) preserves the
+        # exact previous behavior — vz_llm.stream_chat's own system_prompt=
+        # None default, which reads the live (hot-reloadable) global
+        # AGENT_PROFILE via get_effective_system_prompt(). When set, every
+        # turn of THIS session uses this string instead, without ever
+        # touching agent_profile.json on disk or the global AGENT_PROFILE
+        # dict — see _run_turn() below.
+        self.system_prompt_override = system_prompt_override
 
         self.history = ConversationHistory()
 
@@ -560,6 +570,7 @@ class CascadeSession:
                 result = call_with_retry(
                     stream_chat, model_id, reasoning_effort, self.history,
                     on_token=on_token, stop_event=stop_event,
+                    system_prompt=self.system_prompt_override,
                 )
                 loop.call_soon_threadsafe(token_queue.put_nowait, ("__done__", result))
             except Exception as exc:

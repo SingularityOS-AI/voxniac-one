@@ -148,6 +148,22 @@ def _read_turns_for_call(call_id: str) -> list:
     return turns
 
 
+def get_call_transcript_text(call_id: str) -> str:
+    """Phase 4 Etapa C: plain-text "User: ...\\nAgent: ..." transcript for a
+    call, built from the same voxniac_one_log.jsonl entries write_call_
+    transcript() reads — used by server.py to feed a finished lead call's
+    transcript into leads.classify_lead_call() (Fireworks). Never raises
+    (same bulletproof contract as the rest of this module): a missing/
+    corrupt log yields an empty string, which classify_lead_call() itself
+    already handles gracefully."""
+    turns = _read_turns_for_call(call_id)
+    lines = []
+    for turn in turns:
+        lines.append(f"User: {turn.get('user_text', '')}")
+        lines.append(f"Agent: {turn.get('agent_text', '')}")
+    return "\n".join(lines)
+
+
 def write_call_transcript(
     call_id: str,
     phone: "str | None" = None,

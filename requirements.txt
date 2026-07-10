@@ -5,3 +5,6 @@ uvicorn[standard]
 websockets>=13
 groq
 twilio
+# Phase 4 Etapa C: required by FastAPI/Starlette to parse multipart/form-data
+# uploads (POST /leads/import's CSV file field) — stdlib alone can't do this.
+python-multipart

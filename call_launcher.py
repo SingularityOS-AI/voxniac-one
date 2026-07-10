@@ -54,7 +54,15 @@ HEALTH_CHECK_TIMEOUT_S = 5
 # ---------------------------------------------------------------------------
 # trigger_call
 # ---------------------------------------------------------------------------
-def trigger_call(to_number: str, wss_url: str) -> str:
+def _escape_xml_attr(value: str) -> str:
+    """Minimal XML attribute escaping for TwiML <Parameter value="...">
+    (Twilio's own TwiML is XML) — avoids pulling in a full XML library for
+    two characters. Not a general-purpose escaper; only used for values this
+    codebase itself controls (phone numbers, lead ids, uuid4 hex keys)."""
+    return (value or "").replace("&", "&amp;").replace('"', "&quot;")
+
+
+def trigger_call(to_number: str, wss_url: str, extra_params: "dict | None" = None) -> str:
     """
     Fires a real outbound call via the Twilio REST API and connects it to
     wss_url using a <Connect><Stream> TwiML verb. Returns the call SID.
@@ -62,6 +70,13 @@ def trigger_call(to_number: str, wss_url: str) -> str:
     Fails loud (raises RuntimeError) if TWILIO_SID / TWILIO_TOKEN /
     TWILIO_PHONE_NUMBER are missing from the environment/.env — this must
     never silently no-op.
+
+    extra_params: Phase 4 Etapa C — optional extra Twilio Media Streams
+    custom Stream Parameters (e.g. {"lead_id": "...", "override_key": "..."})
+    appended alongside the existing "to" parameter, so /ws/twilio's "start"
+    event can look up a per-call prompt override (see server.py's
+    _LEAD_CALL_OVERRIDES) without touching agent_profile.json. Default None
+    preserves the exact previous TwiML for every existing caller.
     """
     missing = [
         name
@@ -82,9 +97,14 @@ def trigger_call(to_number: str, wss_url: str) -> str:
     # Streams custom Stream Parameter — Twilio's "start" event otherwise
     # carries no phone number at all, and /ws/twilio needs it (last 4 digits)
     # to build the call's call_id (see transports.parse_twilio_event).
+    extra_tags = ""
+    for key, value in (extra_params or {}).items():
+        extra_tags += f'<Parameter name="{_escape_xml_attr(key)}" value="{_escape_xml_attr(str(value))}"/>'
+
     twiml = (
         f'<Response><Connect><Stream url="{wss_url}">'
         f'<Parameter name="to" value="{to_number}"/>'
+        f"{extra_tags}"
         f"</Stream></Connect></Response>"
     )
     client = Client(TWILIO_SID, TWILIO_TOKEN)

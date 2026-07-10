@@ -19,3 +19,8 @@ onboarding_state.json
 
 # Phase 3.5 P1: per-call transcripts contain free-text prospect conversations
 transcripts/
+
+# Phase 4 Etapa C: the leads store (phone/email are always obfuscated before
+# they're ever written here, but the DB file itself still isn't a build
+# artifact anyone should commit)
+leads.db

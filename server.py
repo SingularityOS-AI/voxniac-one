@@ -24,6 +24,23 @@ Serves the static call UI and exposes:
   POST /profile         -> Phase 4 Etapa B: validate + write agent_profile.json
                           from the Profile Editor's manual fields, then
                           hot-reload via the same reload_agent_profile()
+  POST /leads/import     -> Phase 4 Etapa C: import an Apollo-export-shaped
+                          CSV (multipart "file" field) into leads.db, phone/
+                          email obfuscated in-line (see leads.py) -> {"imported","skipped"}
+  GET  /leads            -> Phase 4 Etapa C: list leads (?status=COLD|WARM|HOT)
+  PATCH /leads/{id}      -> Phase 4 Etapa C: edit a lead's editable fields
+  POST /leads/{id}/generate_prompt -> Phase 4 Etapa C: Fireworks gpt-oss-120b
+                          drafts {"first_message","system_prompt"} for this
+                          lead (grounded in the current agent_profile.json
+                          persona), saved onto the lead
+  POST /leads/{id}/call  -> Phase 4 Etapa C: places a call using the lead's
+                          (or request body's) first_message/system_prompt as
+                          an in-memory override of /ws/twilio's session —
+                          agent_profile.json is never touched. DEMO_SAFE_MODE
+                          (env var, default "true") always dials
+                          CALL_ME_NUMBER, never a lead's own number (which is
+                          masked at import time anyway — there is no real
+                          number to dial).
 
 Non-negotiable principles (see PLAN_ONE.md section 6, PLAN_FASE3.md section C):
 - Fail loud: every provider failure is sent to the client with stage + detail,
@@ -44,17 +61,19 @@ import json
 import logging
 import os
 import re
+import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Request, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import event_bus
 import interviewer
+import leads
 import vz_logger
 from call_launcher import start_tunnel, trigger_call
 from cascade import CascadeSession, classify_error
@@ -97,6 +116,28 @@ PUBLIC_HOST_OVERRIDE = os.environ.get("VOXNIAC_PUBLIC_HOST")
 E164_RE = re.compile(r"^\+[1-9]\d{7,14}$")
 
 _tunnel_process = None
+
+# ---------------------------------------------------------------------------
+# Phase 4 Etapa C: lead-call overrides + DEMO_SAFE_MODE
+# ---------------------------------------------------------------------------
+# Keyed by a one-shot uuid4 hex ("override_key", passed to Twilio as a custom
+# Stream Parameter alongside "to" and "lead_id" — see call_launcher.
+# trigger_call's extra_params). ws_twilio's "start" handler pops (reads +
+# deletes) the entry for the incoming call's override_key the moment the
+# call connects, so this dict never grows unbounded and never leaks a stale
+# override into a later, unrelated call. Never persisted to disk — this is
+# exactly the "without touching agent_profile.json" mechanism the spec asks
+# for.
+_LEAD_CALL_OVERRIDES: "dict[str, dict]" = {}
+
+
+def _demo_safe_mode() -> bool:
+    """Read live (never cached) so a test or an operator can flip
+    DEMO_SAFE_MODE without restarting the process. Default true: absent or
+    any value other than an explicit falsy string keeps the safety net on.
+    NEVER reads/writes any .env file — this is a plain process environment
+    variable, exactly like every other os.getenv() call in this codebase."""
+    return os.getenv("DEMO_SAFE_MODE", "true").strip().lower() not in ("false", "0", "no", "off")
 
 
 def _stop_tunnel_process():
@@ -188,6 +229,7 @@ def get_config():
                 for model_id, label in INTERVIEWER_MODEL_CHOICES.items()
             ],
         },
+        "demo_safe_mode": _demo_safe_mode(),
     })
 
 
@@ -355,6 +397,198 @@ async def set_profile(request: Request):
 
     fresh = reload_agent_profile(AGENT_PROFILE_PATH)
     return JSONResponse(_profile_editor_payload(fresh))
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 Etapa C: leads (Campaigns layer)
+# ---------------------------------------------------------------------------
+def _leads_error(detail: str, status_code: int = 400, kind: str = "bad_request"):
+    return JSONResponse(
+        {"error": {"stage": "leads", "kind": kind, "detail": detail}},
+        status_code=status_code,
+    )
+
+
+@app.post("/leads/import")
+async def import_leads(file: UploadFile = File(...)):
+    """Multipart CSV upload (Apollo export shape, tolerant of missing/
+    renamed columns — see leads.import_csv). Phone/email are obfuscated
+    in-line at import time; the raw values from the upload are never
+    persisted, logged, or echoed back in this response."""
+    content = await file.read()
+    if not content:
+        return _leads_error("Empty file upload.")
+    try:
+        result = await asyncio.to_thread(leads.import_csv, content)
+    except leads.LeadsError as exc:
+        logger.error("POST /leads/import failed: %s", exc)
+        return _leads_error(str(exc)[:300])
+    return JSONResponse(result)
+
+
+@app.get("/leads")
+def get_leads(status: "str | None" = None):
+    if status and status not in leads.STATUSES:
+        return _leads_error(f"'status' must be one of {leads.STATUSES}, got '{status}'.")
+    return JSONResponse(leads.list_leads(status))
+
+
+@app.patch("/leads/{lead_id}")
+async def patch_lead(lead_id: str, request: Request):
+    try:
+        payload = await request.json()
+    except json.JSONDecodeError as exc:
+        return _leads_error(f"Invalid JSON body: {exc}")
+    if not isinstance(payload, dict):
+        return _leads_error("Payload must be a JSON object.")
+    if "status" in payload and payload["status"] not in leads.STATUSES:
+        return _leads_error(f"'status' must be one of {leads.STATUSES}.")
+    if "painPoints" in payload and not isinstance(payload["painPoints"], list):
+        return _leads_error("'painPoints' must be a JSON array.")
+
+    updated = leads.update_lead(lead_id, payload)
+    if updated is None:
+        return _leads_error(f"Lead '{lead_id}' not found.", status_code=404, kind="not_found")
+    return JSONResponse(updated)
+
+
+@app.post("/leads/{lead_id}/generate_prompt")
+async def generate_lead_prompt_endpoint(lead_id: str):
+    """Fireworks gpt-oss-120b (same client/pattern as interviewer.py's plan
+    drafter — see leads.generate_lead_prompt) drafts a personalized
+    first_message/system_prompt for this lead, grounded in the CURRENT
+    agent_profile.json persona, and saves it onto the lead."""
+    lead = leads.get_lead(lead_id)
+    if lead is None:
+        return _leads_error(f"Lead '{lead_id}' not found.", status_code=404, kind="not_found")
+
+    try:
+        result = await asyncio.to_thread(leads.generate_lead_prompt, lead, AGENT_PROFILE)
+    except leads.LeadsError as exc:
+        kind = classify_error(exc)
+        logger.error("POST /leads/%s/generate_prompt failed (%s): %s", lead_id, kind, exc)
+        return JSONResponse(
+            {"error": {"stage": "leads", "kind": kind, "detail": str(exc)[:200]}},
+            status_code=502,
+        )
+
+    updated = leads.update_lead_generated_prompt(
+        lead_id, result["first_message"], result["system_prompt"]
+    )
+    return JSONResponse(updated)
+
+
+@app.post("/leads/{lead_id}/call")
+async def call_lead(lead_id: str, request: Request):
+    """Places a call for this lead through the SAME /ws/twilio pipeline as
+    POST /call, with an optional first_message/system_prompt override that
+    lives ONLY in the in-memory _LEAD_CALL_OVERRIDES dict for the duration
+    of this one call — agent_profile.json is never read or written here.
+
+    DEMO_SAFE_MODE (default true): this codebase never stores a lead's real
+    phone number at all (leads.py masks it in-line at import time), so every
+    lead call already has no real number to dial — CALL_ME_NUMBER is used
+    unconditionally. DEMO_SAFE_MODE is still read and reported in the
+    response so the flag has real, visible effect the moment a future real
+    lead-number source (see scrapers/__init__.py) is wired in.
+    """
+    lead = leads.get_lead(lead_id)
+    if lead is None:
+        return _leads_error(f"Lead '{lead_id}' not found.", status_code=404, kind="not_found")
+
+    try:
+        body = await request.json()
+    except json.JSONDecodeError:
+        body = {}
+    if not isinstance(body, dict):
+        body = {}
+
+    first_message = lead.get("customFirstMessage") or ""
+    system_prompt = lead.get("customSystemPrompt") or ""
+    if isinstance(body.get("first_message"), str) and body["first_message"].strip():
+        first_message = body["first_message"]
+    if isinstance(body.get("system_prompt"), str) and body["system_prompt"].strip():
+        system_prompt = body["system_prompt"]
+
+    demo_safe = _demo_safe_mode()
+    if not demo_safe:
+        logger.warning(
+            "POST /leads/%s/call: DEMO_SAFE_MODE is off, but this codebase never stores a "
+            "lead's real phone number (masked at import) — still dialing CALL_ME_NUMBER.",
+            lead_id,
+        )
+
+    to = (os.environ.get("CALL_ME_NUMBER") or "").strip()
+    if not to or not E164_RE.match(to):
+        return JSONResponse(
+            {"error": {
+                "stage": "call",
+                "kind": "unknown",
+                "detail": "CALL_ME_NUMBER is not set to a valid E.164 number — cannot place "
+                          "any lead call (every lead call dials CALL_ME_NUMBER; leads never "
+                          "carry a real, dialable number).",
+            }},
+            status_code=502,
+        )
+
+    public_wss = getattr(app.state, "public_wss", None)
+    if not public_wss:
+        return JSONResponse(
+            {"error": {
+                "stage": "tunnel",
+                "kind": "unknown",
+                "detail": "No public tunnel is available (cloudflared failed to start "
+                          "and VOXNIAC_PUBLIC_HOST is not set) — cannot place a phone call.",
+            }},
+            status_code=502,
+        )
+
+    override_key = uuid.uuid4().hex
+    if first_message or system_prompt:
+        _LEAD_CALL_OVERRIDES[override_key] = {
+            "lead_id": lead_id,
+            "first_message": first_message,
+            "system_prompt": system_prompt,
+        }
+
+    try:
+        sid = await asyncio.to_thread(
+            trigger_call, to, public_wss, {"lead_id": lead_id, "override_key": override_key},
+        )
+    except Exception as exc:
+        _LEAD_CALL_OVERRIDES.pop(override_key, None)
+        kind = classify_error(exc)
+        logger.error("POST /leads/%s/call: trigger_call failed (%s stage=call): %s", lead_id, kind, exc)
+        return JSONResponse(
+            {"error": {"stage": "call", "kind": kind, "detail": str(exc)[:200]}},
+            status_code=502,
+        )
+
+    return JSONResponse({
+        "sid": sid, "to": to, "status": "queued", "lead_id": lead_id, "demo_safe_mode": demo_safe,
+    })
+
+
+async def _classify_lead_after_call(lead_id: str, call_id: str):
+    """Fire-and-forget (called from ws_twilio's teardown `finally` block via
+    asyncio.create_task — never awaited there, so it can't delay closing the
+    socket): runs Fireworks classification (leads.classify_lead_call) on the
+    finished call's transcript and updates the lead's status +
+    classificationReasoning. Any failure is logged and the lead's status is
+    left exactly as it was — never guesses, never crashes the server."""
+    try:
+        lead = await asyncio.to_thread(leads.get_lead, lead_id)
+        if lead is None:
+            return
+        transcript_text = await asyncio.to_thread(vz_logger.get_call_transcript_text, call_id)
+        result = await asyncio.to_thread(leads.classify_lead_call, lead, transcript_text)
+        await asyncio.to_thread(
+            leads.update_lead_classification, lead_id, result["status"], result["reasoning"],
+        )
+    except Exception as exc:
+        logger.error(
+            "classify_lead_after_call: failed for lead=%s call=%s: %s", lead_id, call_id, exc
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -541,6 +775,12 @@ async def ws_twilio(ws: WebSocket):
     session: "CascadeSession | None" = None
     call_id: "str | None" = None
     to_number: "str | None" = None
+    # Phase 4 Etapa C: set from the "start" event's custom Stream Parameters
+    # (see call_launcher.trigger_call's extra_params) only for a call placed
+    # via POST /leads/{id}/call — a regular POST /call prospect call never
+    # carries these, so both stay None and every line below that guards on
+    # `if lead_id:` is a no-op, exactly like before this feature existed.
+    lead_id: "str | None" = None
     started_at = datetime.now(timezone.utc)
 
     try:
@@ -560,19 +800,48 @@ async def ws_twilio(ws: WebSocket):
                 continue
             elif kind == "start":
                 transport.stream_sid = value.get("stream_sid")
-                to_number = (value.get("custom_parameters") or {}).get("to")
+                custom_parameters = value.get("custom_parameters") or {}
+                to_number = custom_parameters.get("to")
+                lead_id = custom_parameters.get("lead_id") or None
+                override_key = custom_parameters.get("override_key")
                 if session is None:
                     call_id = vz_logger.make_call_id(phone=to_number)
                     transport.call_id = call_id
-                    session = CascadeSession(
+
+                    # Phase 4 Etapa C: apply this call's one-shot lead
+                    # override (if any) WITHOUT ever touching AGENT_PROFILE
+                    # or agent_profile.json — a shallow copy carries the
+                    # overridden opening line (session.profile.get(
+                    # "agent_opening") -> start()'s spoken opening), and
+                    # system_prompt_override is passed straight through to
+                    # CascadeSession so the LIVE conversation turns use it
+                    # too (see cascade.py's _run_turn). Every other field
+                    # (voice, llm_model, prompt_blocks/truth_base fallback)
+                    # is untouched, still read from the real, hot-reloadable
+                    # global profile.
+                    session_profile = AGENT_PROFILE
+                    system_prompt_override = None
+                    if override_key:
+                        override = _LEAD_CALL_OVERRIDES.pop(override_key, None)
+                        if override:
+                            session_profile = dict(AGENT_PROFILE)
+                            if override.get("first_message"):
+                                session_profile["agent_opening"] = override["first_message"]
+                            if override.get("system_prompt"):
+                                system_prompt_override = override["system_prompt"]
+
+                    session_kwargs = dict(
                         transport=transport,
                         stt_cfg=TWILIO_STT_CFG,
                         llm_cfg={"model_id": AGENT_PROFILE.get("llm_model")},
                         tts_cfg=TWILIO_TTS_CFG,
-                        profile=AGENT_PROFILE,
+                        profile=session_profile,
                         call_id=call_id,
                         channel="twilio",
                     )
+                    if system_prompt_override:
+                        session_kwargs["system_prompt_override"] = system_prompt_override
+                    session = CascadeSession(**session_kwargs)
                     try:
                         await session.start()
                     except Exception as exc:
@@ -597,6 +866,13 @@ async def ws_twilio(ws: WebSocket):
             vz_logger.write_call_transcript(
                 call_id, to_number, started_at, ended_at, AGENT_PROFILE.get("llm_model"),
             )
+            if lead_id:
+                # Cheap synchronous DB write (the call happened, regardless
+                # of whether classification below succeeds or even runs).
+                leads.update_lead_call(lead_id, call_id, ended_at.isoformat())
+                # Fire-and-forget: classification runs a Fireworks call, so
+                # it must never delay this WS handler's own teardown.
+                asyncio.create_task(_classify_lead_after_call(lead_id, call_id))
 
 
 # ---------------------------------------------------------------------------
