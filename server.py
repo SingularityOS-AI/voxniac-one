@@ -18,6 +18,12 @@ Serves the static call UI and exposes:
   POST /profile/reload  -> Phase 3.5 P3: force-reread agent_profile.json now
                           (for a hand edit made outside the interviewer UI —
                           interviewer.approve() already calls this itself)
+  GET  /profile         -> Phase 4 Etapa B: current agent profile, shaped for
+                          the Agent Setup "Profile Editor" (agent_opening,
+                          prompt_blocks.*, truth_base, voice, llm_model)
+  POST /profile         -> Phase 4 Etapa B: validate + write agent_profile.json
+                          from the Profile Editor's manual fields, then
+                          hot-reload via the same reload_agent_profile()
 
 Non-negotiable principles (see PLAN_ONE.md section 6, PLAN_FASE3.md section C):
 - Fail loud: every provider failure is sent to the client with stage + detail,
@@ -56,6 +62,7 @@ from transports import BrowserTransport, TwilioTransport, parse_twilio_event
 from vz_asr import transcribe_prerecorded
 from vz_config import (
     AGENT_PROFILE,
+    AGENT_PROFILE_PATH,
     INTERVIEWER_MODEL_CHOICES,
     engine_availability,
     get_interviewer_model_id,
@@ -224,6 +231,130 @@ def set_interviewer_model(payload: InterviewerModelRequest):
 def profile_reload():
     fresh = reload_agent_profile()
     return JSONResponse({"agent_opening": fresh.get("agent_opening", "")})
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 Etapa B: GET/POST /profile — Agent Setup's "Profile Editor" (manual
+# edit of agent_opening/prompt_blocks/truth_base/voice/llm_model), a second,
+# independent way to write agent_profile.json besides the interviewer's own
+# chat-driven Approve flow (interviewer.py's approve()). POST reuses the
+# exact same vz_config.reload_agent_profile() hot-reload interviewer.approve()
+# already calls, so a Profile Editor save takes effect on the very next
+# call/turn identically — see reload_agent_profile()'s own docstring for the
+# in-flight-call caveat (opening line + TTS voice already read stay as-is).
+# ---------------------------------------------------------------------------
+_PROMPT_BLOCK_KEYS = ("personality", "environment", "tone", "goal", "guardrails")
+
+
+def _profile_editor_payload(profile: dict) -> dict:
+    """Shapes an agent_profile.json-loaded dict (see vz_config.load_agent_
+    profile/AGENT_PROFILE) into exactly what the Profile Editor's fields need:
+    the 5 canonical prompt_blocks keys always present (never missing -> a
+    legacy/partial profile still renders blank textareas instead of raising),
+    truth_base as a plain dict (client JSON.stringifies it for its textarea)."""
+    blocks = profile.get("prompt_blocks")
+    if not isinstance(blocks, dict):
+        blocks = {}
+    truth_base = profile.get("truth_base")
+    if not isinstance(truth_base, dict):
+        truth_base = {}
+    return {
+        "agent_opening": profile.get("agent_opening", "") or "",
+        "voice": profile.get("voice", "") or "",
+        "llm_model": profile.get("llm_model", "") or "",
+        "prompt_blocks": {key: (blocks.get(key, "") or "") for key in _PROMPT_BLOCK_KEYS},
+        "truth_base": truth_base,
+    }
+
+
+def _profile_error(detail: str, status_code: int = 400):
+    return JSONResponse(
+        {"error": {"stage": "profile", "kind": "bad_request", "detail": detail}},
+        status_code=status_code,
+    )
+
+
+@app.get("/profile")
+def get_profile():
+    return JSONResponse(_profile_editor_payload(AGENT_PROFILE))
+
+
+@app.post("/profile")
+async def set_profile(request: Request):
+    """Validates the Profile Editor's payload field by field (never trusting
+    a pydantic model's default 422 here — every failure mode the spec calls
+    out, including an unparseable JSON body itself, comes back as a fail-loud
+    HTTP 400 with a {"error":{"stage":"profile",...}} detail, same shape as
+    every other endpoint in this file), writes agent_profile.json, and hot-
+    reloads it via reload_agent_profile() — identical effect to interviewer.
+    approve(), just triggered from the manual editor instead of the chat."""
+    try:
+        payload = await request.json()
+    except json.JSONDecodeError as exc:
+        return _profile_error(f"Invalid JSON body: {exc}")
+
+    if not isinstance(payload, dict):
+        return _profile_error("Payload must be a JSON object.")
+
+    agent_opening = payload.get("agent_opening", "")
+    if not isinstance(agent_opening, str):
+        return _profile_error("'agent_opening' must be a string.")
+
+    voice = payload.get("voice", "")
+    if not isinstance(voice, str):
+        return _profile_error("'voice' must be a string.")
+
+    llm_model = payload.get("llm_model", "")
+    if not isinstance(llm_model, str):
+        return _profile_error("'llm_model' must be a string.")
+
+    raw_blocks = payload.get("prompt_blocks", {})
+    if not isinstance(raw_blocks, dict):
+        return _profile_error("'prompt_blocks' must be a JSON object.")
+    prompt_blocks = {}
+    for key in _PROMPT_BLOCK_KEYS:
+        value = raw_blocks.get(key, "")
+        if not isinstance(value, str):
+            return _profile_error(f"'prompt_blocks.{key}' must be a string.")
+        prompt_blocks[key] = value
+
+    raw_truth_base = payload.get("truth_base", {})
+    if isinstance(raw_truth_base, str):
+        stripped = raw_truth_base.strip()
+        if not stripped:
+            truth_base = {}
+        else:
+            try:
+                truth_base = json.loads(stripped)
+            except json.JSONDecodeError as exc:
+                return _profile_error(f"'truth_base' is not valid JSON: {exc}")
+            if not isinstance(truth_base, dict):
+                return _profile_error("'truth_base' JSON must decode to an object.")
+    elif isinstance(raw_truth_base, dict):
+        truth_base = raw_truth_base
+    else:
+        return _profile_error("'truth_base' must be a JSON object or a JSON-encoded string.")
+
+    profile = {
+        "agent_opening": agent_opening,
+        "voice": voice,
+        "llm_model": llm_model,
+        "prompt_blocks": prompt_blocks,
+        "truth_base": truth_base,
+    }
+
+    try:
+        with open(AGENT_PROFILE_PATH, "w", encoding="utf-8") as f:
+            json.dump(profile, f, indent=2, ensure_ascii=False)
+    except OSError as exc:
+        logger.error("POST /profile: could not write agent_profile.json: %s", exc)
+        return JSONResponse(
+            {"error": {"stage": "profile", "kind": "unknown", "detail": str(exc)[:200]}},
+            status_code=500,
+        )
+
+    fresh = reload_agent_profile(AGENT_PROFILE_PATH)
+    return JSONResponse(_profile_editor_payload(fresh))
 
 
 # ---------------------------------------------------------------------------

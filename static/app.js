@@ -46,6 +46,12 @@
  *     interviewer's reply streams back over the existing /ws/interview
  *     socket as interviewer_token/interviewer_done, same as a typed message.
  *   POST /interviewer/model {"model_id":"..."} -> {"model_id":"..."} | {"error":{...}}
+ *
+ * REST (Phase 4 Etapa B "Profile Editor" — manual agent_profile.json edit):
+ *   GET  /profile -> {"agent_opening","prompt_blocks":{personality,
+ *     environment,tone,goal,guardrails},"truth_base":{...},"voice","llm_model"}
+ *   POST /profile {same shape, truth_base may be a JSON-encoded string} ->
+ *     same shape (the reloaded profile) | {"error":{...}}
  */
 
 const MIC_SAMPLE_RATE = 16000;
@@ -129,6 +135,19 @@ const el = {
   interviewerModelSelect: document.getElementById('interviewerModelSelect'),
   profileReloadBtn: document.getElementById('profileReloadBtn'),
   profileReloadStatus: document.getElementById('profileReloadStatus'),
+
+  // Profile Editor (Etapa B, GET/POST /profile)
+  profileAgentOpening: document.getElementById('profileAgentOpening'),
+  profileVoice: document.getElementById('profileVoice'),
+  profileLlmModel: document.getElementById('profileLlmModel'),
+  profileBlockPersonality: document.getElementById('profileBlockPersonality'),
+  profileBlockEnvironment: document.getElementById('profileBlockEnvironment'),
+  profileBlockTone: document.getElementById('profileBlockTone'),
+  profileBlockGoal: document.getElementById('profileBlockGoal'),
+  profileBlockGuardrails: document.getElementById('profileBlockGuardrails'),
+  profileTruthBase: document.getElementById('profileTruthBase'),
+  profileSaveBtn: document.getElementById('profileSaveBtn'),
+  profileEditorStatus: document.getElementById('profileEditorStatus'),
 };
 
 // ── Status area (fail-loud, no alert) ───────────────────────────────────
@@ -183,6 +202,12 @@ async function loadConfig() {
     const opening = (cfg.profile && cfg.profile.agent_opening) || cfg.agent_opening;
     if (opening) {
       el.agentOpening.textContent = opening;
+    }
+
+    // Phase 4 Etapa B: Profile Editor's LLM model select reuses the exact
+    // same options as the Voice Engine's own llmSelect.
+    if (cfg.llm && el.profileLlmModel) {
+      populateSelect(el.profileLlmModel, cfg.llm);
     }
 
     // Phase 3.5 P2: interviewer model select (120B quality / 20B fast)
@@ -1033,6 +1058,7 @@ function connectInterviewWs() {
       case 'profile_written': {
         setInterviewStatus('Approved — agent_profile.json updated and hot-reloaded.', 'ok');
         loadConfig(); // re-fetch /config so the opening-line preview reflects the new profile
+        loadProfileEditor(); // Etapa B: refresh the Profile Editor's fields with the approved plan
         break;
       }
       case 'error': {
@@ -1103,6 +1129,96 @@ if (el.profileReloadBtn) {
       el.profileReloadBtn.disabled = false;
     }
   });
+}
+
+// ── Profile Editor (Phase 4 Etapa B, GET/POST /profile) ───────────────────
+// Manual edit of agent_opening/prompt_blocks.*/truth_base/voice/llm_model,
+// a second way to write agent_profile.json besides the interviewer's own
+// chat + Approve flow. Loaded the moment the Agent Setup layer is entered
+// (see "Control Room layer navigation" below) and refreshed automatically
+// after an Approve (see the 'profile_written' case above), so the editor
+// never shows stale fields next to whatever the interviewer just wrote.
+function setProfileEditorStatus(msg, level = 'info') {
+  if (!el.profileEditorStatus) return;
+  el.profileEditorStatus.textContent = msg;
+  el.profileEditorStatus.className = 'profile-editor-status' + (level !== 'info' ? ' status-' + level : '');
+}
+
+function applyProfileEditorData(data) {
+  if (!data) return;
+  if (el.profileAgentOpening) el.profileAgentOpening.value = data.agent_opening || '';
+  if (el.profileVoice) el.profileVoice.value = data.voice || '';
+  if (el.profileLlmModel && data.llm_model) el.profileLlmModel.value = data.llm_model;
+  const blocks = data.prompt_blocks || {};
+  if (el.profileBlockPersonality) el.profileBlockPersonality.value = blocks.personality || '';
+  if (el.profileBlockEnvironment) el.profileBlockEnvironment.value = blocks.environment || '';
+  if (el.profileBlockTone) el.profileBlockTone.value = blocks.tone || '';
+  if (el.profileBlockGoal) el.profileBlockGoal.value = blocks.goal || '';
+  if (el.profileBlockGuardrails) el.profileBlockGuardrails.value = blocks.guardrails || '';
+  if (el.profileTruthBase) el.profileTruthBase.value = JSON.stringify(data.truth_base || {}, null, 2);
+}
+
+async function loadProfileEditor() {
+  if (!el.profileAgentOpening) return; // panel not present in this build (defensive)
+  try {
+    const resp = await fetch('/profile');
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      const detail = data.error ? `[${data.error.stage}] ${data.error.detail}` : `HTTP ${resp.status}`;
+      setProfileEditorStatus(`Error loading profile: ${detail}`, 'error');
+      return;
+    }
+    applyProfileEditorData(data);
+    setProfileEditorStatus('', 'info');
+  } catch (err) {
+    setProfileEditorStatus(`Request failed: ${err.message}`, 'error');
+  }
+}
+
+async function saveProfileEditor() {
+  if (!el.profileSaveBtn) return;
+  el.profileSaveBtn.disabled = true;
+  setProfileEditorStatus('Saving…', 'info');
+  const payload = {
+    agent_opening: el.profileAgentOpening.value,
+    voice: el.profileVoice.value,
+    llm_model: el.profileLlmModel.value,
+    prompt_blocks: {
+      personality: el.profileBlockPersonality.value,
+      environment: el.profileBlockEnvironment.value,
+      tone: el.profileBlockTone.value,
+      goal: el.profileBlockGoal.value,
+      guardrails: el.profileBlockGuardrails.value,
+    },
+    // Sent as the raw textarea string; the server validates/parses it as
+    // JSON (400 fail-loud on invalid JSON) — no client-side JSON.parse here
+    // so a founder's typo shows the server's exact error, not a silent skip.
+    truth_base: el.profileTruthBase.value,
+  };
+  try {
+    const resp = await fetch('/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      const detail = data.error ? `[${data.error.stage}] ${data.error.detail}` : `HTTP ${resp.status}`;
+      setProfileEditorStatus(`Save failed: ${detail}`, 'error');
+    } else {
+      applyProfileEditorData(data); // canonical values back from the bulletproof loader
+      setProfileEditorStatus('Perfil guardado y recargado ✓', 'ok');
+      loadConfig(); // Layer 1's opening-line preview should reflect the new profile too
+    }
+  } catch (err) {
+    setProfileEditorStatus(`Request failed: ${err.message}`, 'error');
+  } finally {
+    el.profileSaveBtn.disabled = false;
+  }
+}
+
+if (el.profileSaveBtn) {
+  el.profileSaveBtn.addEventListener('click', saveProfileEditor);
 }
 
 // ── Voice-note setup (Phase 3.5 P2, POST /interview/audio) ────────────────
@@ -1205,6 +1321,12 @@ function setActiveLayer(layer) {
   layerPanels.forEach((panel) => {
     panel.classList.toggle('active', panel.dataset.layerPanel === layer);
   });
+  if (layer === '2') {
+    // Agent Setup: (re)load the Profile Editor's fields from disk every time
+    // the founder comes back to this layer, so a hand edit made elsewhere
+    // (or a stale in-memory state) never shows outdated fields.
+    loadProfileEditor();
+  }
   if (layer === '3') {
     // Phone Outreach, since the Etapa A reorder (was layer '2' before).
     const dot = document.querySelector('.pipeline-item[data-layer="3"] .pipeline-dot');

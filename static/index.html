@@ -144,30 +144,81 @@
         <span class="state-badge" id="interviewStateBadge">—</span>
       </div>
 
-      <div class="interview-panel">
-        <div class="interview-model-row">
-          <label class="field-label" for="interviewerModelSelect">Interviewer model</label>
-          <select id="interviewerModelSelect"></select>
+      <!--
+        Etapa B: split into the entrevistador chat (left, all ids intact)
+        and a "Profile Editor" (right, new ids) for direct manual edits —
+        agent_opening, prompt_blocks.*, truth_base, voice, llm_model — via
+        GET/POST /profile (server.py), reusing vz_config.reload_agent_
+        profile() for hot-reload, same as the interviewer's own Approve.
+      -->
+      <div class="agent-setup-split">
+        <div class="interview-panel">
+          <div class="interview-model-row">
+            <label class="field-label" for="interviewerModelSelect">Interviewer model</label>
+            <select id="interviewerModelSelect"></select>
+          </div>
+          <div class="interview-messages" id="interviewMessages"></div>
+          <div class="interview-input-row">
+            <button id="interviewMicBtn" class="interview-mic-btn" type="button"
+                    title="Record a voice note">🎙</button>
+            <input type="text" id="interviewInput" class="interview-input"
+                   placeholder="Type your answer…" disabled>
+            <button id="interviewSendBtn" class="interview-send-btn" disabled>Send</button>
+          </div>
+          <div class="interview-controls">
+            <button id="interviewApproveBtn" class="interview-ctrl-btn approve" disabled>Approve</button>
+            <button id="interviewBackBtn" class="interview-ctrl-btn adjust" disabled>Adjust</button>
+            <button id="interviewResetBtn" class="interview-ctrl-btn reset">Reset</button>
+            <button id="profileReloadBtn" class="interview-ctrl-btn reload"
+                    title="Re-read agent_profile.json from disk (for a hand edit made outside this UI)">
+              Reload profile
+            </button>
+          </div>
+          <div class="interview-status" id="interviewStatus"></div>
+          <div class="profile-reload-status" id="profileReloadStatus"></div>
         </div>
-        <div class="interview-messages" id="interviewMessages"></div>
-        <div class="interview-input-row">
-          <button id="interviewMicBtn" class="interview-mic-btn" type="button"
-                  title="Record a voice note">🎙</button>
-          <input type="text" id="interviewInput" class="interview-input"
-                 placeholder="Type your answer…" disabled>
-          <button id="interviewSendBtn" class="interview-send-btn" disabled>Send</button>
+
+        <div class="profile-editor">
+          <div class="profile-editor-header">
+            <h3 class="profile-editor-title">Profile Editor</h3>
+          </div>
+          <div class="profile-editor-body">
+            <label class="field-label" for="profileAgentOpening">Agent opening</label>
+            <textarea id="profileAgentOpening" class="profile-textarea" rows="2"></textarea>
+
+            <div class="profile-editor-row">
+              <div>
+                <label class="field-label" for="profileVoice">Voice</label>
+                <input type="text" id="profileVoice" class="profile-input">
+              </div>
+              <div>
+                <label class="field-label" for="profileLlmModel">LLM model</label>
+                <select id="profileLlmModel"></select>
+              </div>
+            </div>
+
+            <label class="field-label" for="profileBlockPersonality">Personality</label>
+            <textarea id="profileBlockPersonality" class="profile-textarea" rows="3"></textarea>
+
+            <label class="field-label" for="profileBlockEnvironment">Environment</label>
+            <textarea id="profileBlockEnvironment" class="profile-textarea" rows="2"></textarea>
+
+            <label class="field-label" for="profileBlockTone">Tone</label>
+            <textarea id="profileBlockTone" class="profile-textarea" rows="2"></textarea>
+
+            <label class="field-label" for="profileBlockGoal">Goal</label>
+            <textarea id="profileBlockGoal" class="profile-textarea" rows="3"></textarea>
+
+            <label class="field-label" for="profileBlockGuardrails">Guardrails</label>
+            <textarea id="profileBlockGuardrails" class="profile-textarea" rows="3"></textarea>
+
+            <label class="field-label" for="profileTruthBase">Truth base (JSON)</label>
+            <textarea id="profileTruthBase" class="profile-textarea profile-textarea-mono" rows="6"></textarea>
+
+            <button id="profileSaveBtn" class="profile-save-btn" type="button">Save profile</button>
+            <div class="profile-editor-status" id="profileEditorStatus"></div>
+          </div>
         </div>
-        <div class="interview-controls">
-          <button id="interviewApproveBtn" class="interview-ctrl-btn approve" disabled>Approve</button>
-          <button id="interviewBackBtn" class="interview-ctrl-btn adjust" disabled>Adjust</button>
-          <button id="interviewResetBtn" class="interview-ctrl-btn reset">Reset</button>
-          <button id="profileReloadBtn" class="interview-ctrl-btn reload"
-                  title="Re-read agent_profile.json from disk (for a hand edit made outside this UI)">
-            Reload profile
-          </button>
-        </div>
-        <div class="interview-status" id="interviewStatus"></div>
-        <div class="profile-reload-status" id="profileReloadStatus"></div>
       </div>
     </section>
 
