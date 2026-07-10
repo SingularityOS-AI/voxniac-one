@@ -52,6 +52,21 @@
  *     environment,tone,goal,guardrails},"truth_base":{...},"voice","llm_model"}
  *   POST /profile {same shape, truth_base may be a JSON-encoded string} ->
  *     same shape (the reloaded profile) | {"error":{...}}
+ *
+ * REST (Phase 4 Etapa C "Campaigns" — leads):
+ *   POST /leads/import (multipart "file" field, Apollo-export-shaped CSV) ->
+ *     {"imported","skipped"} | {"error":{...}}
+ *   GET  /leads[?status=COLD|WARM|HOT] -> [lead, ...]
+ *   PATCH /leads/{id} {any editable field} -> lead | {"error":{...}}
+ *   POST /leads/{id}/generate_prompt -> lead (with customFirstMessage/
+ *     customSystemPrompt filled in) | {"error":{...}}
+ *   POST /leads/{id}/call {first_message?,system_prompt?} -> {"sid","to",
+ *     "status","lead_id","demo_safe_mode"} | {"error":{...}}
+ *   Live transcript for a lead call reuses the existing /ws/monitor
+ *   connection (see connectMonitorWs) — same event shapes as the Phone
+ *   Outreach panel, routed to the Campaigns lead detail panel instead while
+ *   a lead call is the most recently placed one (single concurrent call,
+ *   same assumption the rest of this file already makes for Phone Outreach).
  */
 
 const MIC_SAMPLE_RATE = 16000;
@@ -95,6 +110,20 @@ const state = {
   monitorSttPartial: null,
   monitorAgentToken: null,
   currentProspectPhone: '',
+
+  // Phase 4 Etapa C: Campaigns (leads) state
+  leads: {
+    all: [],
+    selectedId: null,
+    // Set the moment "Call" is clicked for a lead; routes the next /ws/
+    // monitor events into this lead's transcript panel instead of the
+    // Phone Outreach one (single concurrent call assumption, same as
+    // currentProspectPhone above).
+    activeCallLeadId: null,
+    monitorCallId: null,
+    monitorSttPartial: null,
+    monitorAgentToken: null,
+  },
 };
 
 // ── DOM refs ─────────────────────────────────────────────────────────────
@@ -148,6 +177,33 @@ const el = {
   profileTruthBase: document.getElementById('profileTruthBase'),
   profileSaveBtn: document.getElementById('profileSaveBtn'),
   profileEditorStatus: document.getElementById('profileEditorStatus'),
+
+  // Campaigns (Phase 4 Etapa C)
+  leadsCountHot: document.getElementById('leadsCountHot'),
+  leadsCountWarm: document.getElementById('leadsCountWarm'),
+  leadsCountCold: document.getElementById('leadsCountCold'),
+  demoSafeBadge: document.getElementById('demoSafeBadge'),
+  demoSafeBadgeText: document.getElementById('demoSafeBadgeText'),
+  leadsImportInput: document.getElementById('leadsImportInput'),
+  leadsImportStatus: document.getElementById('leadsImportStatus'),
+  leadsTableBody: document.getElementById('leadsTableBody'),
+  leadsTableCount: document.getElementById('leadsTableCount'),
+  leadDetailEmpty: document.getElementById('leadDetailEmpty'),
+  leadDetailBody: document.getElementById('leadDetailBody'),
+  leadDetailName: document.getElementById('leadDetailName'),
+  leadDetailSub: document.getElementById('leadDetailSub'),
+  leadDetailStatus: document.getElementById('leadDetailStatus'),
+  leadDetailBallena: document.getElementById('leadDetailBallena'),
+  leadDetailPainPoints: document.getElementById('leadDetailPainPoints'),
+  leadDetailFirstMessage: document.getElementById('leadDetailFirstMessage'),
+  leadDetailSystemPrompt: document.getElementById('leadDetailSystemPrompt'),
+  leadGeneratePromptBtn: document.getElementById('leadGeneratePromptBtn'),
+  leadSaveBtn: document.getElementById('leadSaveBtn'),
+  leadCallBtn: document.getElementById('leadCallBtn'),
+  leadDetailStatusMsg: document.getElementById('leadDetailStatusMsg'),
+  leadClassification: document.getElementById('leadClassification'),
+  leadClassificationText: document.getElementById('leadClassificationText'),
+  leadTranscriptMessages: document.getElementById('leadTranscriptMessages'),
 };
 
 // ── Status area (fail-loud, no alert) ───────────────────────────────────
@@ -222,6 +278,11 @@ async function loadConfig() {
       if (cfg.interviewer.model_id) {
         el.interviewerModelSelect.value = cfg.interviewer.model_id;
       }
+    }
+
+    // Phase 4 Etapa C: DEMO SAFE MODE badge (Campaigns toolbar)
+    if (typeof cfg.demo_safe_mode === 'boolean') {
+      applyDemoSafeMode(cfg.demo_safe_mode);
     }
   } catch (err) {
     setStatus(`Error loading /config: ${err.message}`, 'error');
@@ -912,6 +973,7 @@ function connectMonitorWs() {
     }
     if (envelope.channel !== 'twilio') return;
     handleMonitorEvent(envelope.call_id, envelope.event || {});
+    handleLeadMonitorEvent(envelope.call_id, envelope.event || {});
   };
 }
 
@@ -1120,7 +1182,7 @@ if (el.profileReloadBtn) {
         const detail = data.error ? `[${data.error.stage}] ${data.error.detail}` : `HTTP ${resp.status}`;
         setProfileReloadStatus(`Reload failed: ${detail}`, 'error');
       } else {
-        setProfileReloadStatus('Perfil recargado ✓', 'ok');
+        setProfileReloadStatus('Profile reloaded ✓', 'ok');
         el.agentOpening.textContent = data.agent_opening || el.agentOpening.textContent;
       }
     } catch (err) {
@@ -1207,7 +1269,7 @@ async function saveProfileEditor() {
       setProfileEditorStatus(`Save failed: ${detail}`, 'error');
     } else {
       applyProfileEditorData(data); // canonical values back from the bulletproof loader
-      setProfileEditorStatus('Perfil guardado y recargado ✓', 'ok');
+      setProfileEditorStatus('Profile saved and reloaded ✓', 'ok');
       loadConfig(); // Layer 1's opening-line preview should reflect the new profile too
     }
   } catch (err) {
@@ -1302,6 +1364,354 @@ if (el.interviewMicBtn) {
   });
 }
 
+// ── Campaigns / leads (Phase 4 Etapa C) ───────────────────────────────────
+function applyDemoSafeMode(demoSafeMode) {
+  if (!el.demoSafeBadge) return;
+  el.demoSafeBadge.classList.toggle('off', !demoSafeMode);
+  el.demoSafeBadgeText.textContent = demoSafeMode ? 'DEMO SAFE MODE' : 'DEMO SAFE MODE OFF';
+}
+
+function setLeadsImportStatus(msg, level = 'info') {
+  if (!el.leadsImportStatus) return;
+  el.leadsImportStatus.textContent = msg;
+  el.leadsImportStatus.className = 'leads-import-status' + (level !== 'info' ? ' status-' + level : '');
+}
+
+function setLeadDetailStatus(msg, level = 'info') {
+  if (!el.leadDetailStatusMsg) return;
+  el.leadDetailStatusMsg.textContent = msg;
+  el.leadDetailStatusMsg.className = 'lead-detail-status' + (level !== 'info' ? ' status-' + level : '');
+}
+
+function renderLeadsCounters(leadsList) {
+  const counts = { HOT: 0, WARM: 0, COLD: 0 };
+  for (const lead of leadsList) {
+    if (counts[lead.status] !== undefined) counts[lead.status]++;
+  }
+  if (el.leadsCountHot) el.leadsCountHot.textContent = counts.HOT;
+  if (el.leadsCountWarm) el.leadsCountWarm.textContent = counts.WARM;
+  if (el.leadsCountCold) el.leadsCountCold.textContent = counts.COLD;
+  if (el.leadsTableCount) {
+    el.leadsTableCount.textContent = `${leadsList.length} lead${leadsList.length === 1 ? '' : 's'}`;
+  }
+}
+
+function renderLeadsTable(leadsList) {
+  if (!el.leadsTableBody) return;
+  el.leadsTableBody.innerHTML = '';
+
+  if (leadsList.length === 0) {
+    const tr = document.createElement('tr');
+    tr.className = 'leads-table-empty-row';
+    const td = document.createElement('td');
+    td.colSpan = 5;
+    td.textContent = 'No leads yet — import a CSV to get started.';
+    tr.appendChild(td);
+    el.leadsTableBody.appendChild(tr);
+    return;
+  }
+
+  for (const lead of leadsList) {
+    const tr = document.createElement('tr');
+    if (lead.id === state.leads.selectedId) tr.classList.add('selected');
+    tr.addEventListener('click', () => selectLead(lead.id));
+
+    const contactTd = document.createElement('td');
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'lead-contact-name';
+    nameSpan.textContent = lead.contactName || '—';
+    contactTd.appendChild(nameSpan);
+    if (lead.isBallena) {
+      const whale = document.createElement('span');
+      whale.title = 'High-value account';
+      whale.style.marginLeft = '6px';
+      whale.textContent = '🐋';
+      contactTd.appendChild(whale);
+    }
+
+    const companyTd = document.createElement('td');
+    companyTd.textContent = lead.companyName || '—';
+
+    const industryTd = document.createElement('td');
+    industryTd.textContent = lead.industry || '—';
+
+    const phoneTd = document.createElement('td');
+    phoneTd.className = 'lead-phone-cell';
+    phoneTd.textContent = lead.phone || '—';
+
+    const statusTd = document.createElement('td');
+    const chip = document.createElement('span');
+    chip.className = `lead-status-chip ${lead.status}`;
+    chip.textContent = lead.status;
+    statusTd.appendChild(chip);
+
+    tr.append(contactTd, companyTd, industryTd, phoneTd, statusTd);
+    el.leadsTableBody.appendChild(tr);
+  }
+}
+
+function renderLeadDetail(lead) {
+  if (!lead) {
+    if (el.leadDetailEmpty) el.leadDetailEmpty.style.display = '';
+    if (el.leadDetailBody) el.leadDetailBody.style.display = 'none';
+    return;
+  }
+  if (el.leadDetailEmpty) el.leadDetailEmpty.style.display = 'none';
+  if (el.leadDetailBody) el.leadDetailBody.style.display = 'flex';
+
+  el.leadDetailName.textContent = lead.contactName || 'Unknown Contact';
+  const subParts = [lead.seniority, lead.companyName].filter(Boolean);
+  el.leadDetailSub.textContent = subParts.length ? subParts.join(' @ ') : (lead.companyName || '—');
+
+  el.leadDetailStatus.value = lead.status || 'COLD';
+  el.leadDetailBallena.value = lead.isBallena ? 'true' : 'false';
+
+  el.leadDetailPainPoints.innerHTML = '';
+  const painPoints = Array.isArray(lead.painPoints) ? lead.painPoints : [];
+  if (painPoints.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'lead-detail-pain-points-empty';
+    empty.textContent = 'None recorded.';
+    el.leadDetailPainPoints.appendChild(empty);
+  } else {
+    for (const point of painPoints) {
+      const div = document.createElement('div');
+      div.className = 'lead-detail-pain-point';
+      div.textContent = point;
+      el.leadDetailPainPoints.appendChild(div);
+    }
+  }
+
+  el.leadDetailFirstMessage.value = lead.customFirstMessage || '';
+  el.leadDetailSystemPrompt.value = lead.customSystemPrompt || '';
+
+  if (lead.status !== 'COLD' && lead.classificationReasoning) {
+    el.leadClassification.style.display = '';
+    el.leadClassificationText.textContent = `${lead.status}: ${lead.classificationReasoning}`;
+  } else if (lead.classificationReasoning) {
+    el.leadClassification.style.display = '';
+    el.leadClassificationText.textContent = `${lead.status}: ${lead.classificationReasoning}`;
+  } else {
+    el.leadClassification.style.display = 'none';
+  }
+
+  setLeadDetailStatus('', 'info');
+}
+
+function selectLead(leadId) {
+  state.leads.selectedId = leadId;
+  renderLeadsTable(state.leads.all);
+  const lead = state.leads.all.find((l) => l.id === leadId) || null;
+  renderLeadDetail(lead);
+}
+
+async function loadLeads() {
+  try {
+    const resp = await fetch('/leads');
+    if (!resp.ok) throw new Error(`GET /leads HTTP ${resp.status}`);
+    const data = await resp.json();
+    state.leads.all = Array.isArray(data) ? data : [];
+    renderLeadsCounters(state.leads.all);
+    renderLeadsTable(state.leads.all);
+    if (state.leads.selectedId) {
+      const stillThere = state.leads.all.find((l) => l.id === state.leads.selectedId);
+      if (stillThere) {
+        renderLeadDetail(stillThere);
+      } else {
+        state.leads.selectedId = null;
+        renderLeadDetail(null);
+      }
+    }
+  } catch (err) {
+    setLeadsImportStatus(`Could not load leads: ${err.message}`, 'error');
+  }
+}
+
+async function importLeadsCsv(file) {
+  if (!file) return;
+  setLeadsImportStatus(`Importing ${file.name}…`, 'info');
+  const formData = new FormData();
+  formData.append('file', file);
+  try {
+    const resp = await fetch('/leads/import', { method: 'POST', body: formData });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      const detail = data.error ? `[${data.error.stage}] ${data.error.detail}` : `HTTP ${resp.status}`;
+      setLeadsImportStatus(`Import failed: ${detail}`, 'error');
+      return;
+    }
+    setLeadsImportStatus(`Imported ${data.imported} lead(s), skipped ${data.skipped}.`, 'ok');
+    await loadLeads();
+  } catch (err) {
+    setLeadsImportStatus(`Request failed: ${err.message}`, 'error');
+  }
+}
+
+if (el.leadsImportInput) {
+  el.leadsImportInput.addEventListener('change', () => {
+    const file = el.leadsImportInput.files && el.leadsImportInput.files[0];
+    importLeadsCsv(file);
+    el.leadsImportInput.value = ''; // allow re-importing the same filename
+  });
+}
+
+async function saveLeadDetail() {
+  const leadId = state.leads.selectedId;
+  if (!leadId) return;
+  el.leadSaveBtn.disabled = true;
+  setLeadDetailStatus('Saving…', 'info');
+  const payload = {
+    status: el.leadDetailStatus.value,
+    isBallena: el.leadDetailBallena.value === 'true',
+    customFirstMessage: el.leadDetailFirstMessage.value,
+    customSystemPrompt: el.leadDetailSystemPrompt.value,
+  };
+  try {
+    const resp = await fetch(`/leads/${leadId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      const detail = data.error ? `[${data.error.stage}] ${data.error.detail}` : `HTTP ${resp.status}`;
+      setLeadDetailStatus(`Save failed: ${detail}`, 'error');
+      return;
+    }
+    setLeadDetailStatus('Saved ✓', 'ok');
+    await loadLeads();
+  } catch (err) {
+    setLeadDetailStatus(`Request failed: ${err.message}`, 'error');
+  } finally {
+    el.leadSaveBtn.disabled = false;
+  }
+}
+
+if (el.leadSaveBtn) {
+  el.leadSaveBtn.addEventListener('click', saveLeadDetail);
+}
+
+async function generateLeadPrompt() {
+  const leadId = state.leads.selectedId;
+  if (!leadId) return;
+  el.leadGeneratePromptBtn.disabled = true;
+  setLeadDetailStatus('Generating prompt…', 'info');
+  try {
+    const resp = await fetch(`/leads/${leadId}/generate_prompt`, { method: 'POST' });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      const detail = data.error ? `[${data.error.stage}] ${data.error.kind}: ${data.error.detail}` : `HTTP ${resp.status}`;
+      setLeadDetailStatus(`Generate failed: ${detail}`, 'error');
+      return;
+    }
+    setLeadDetailStatus('Prompt generated ✓', 'ok');
+    await loadLeads();
+    renderLeadDetail(data);
+  } catch (err) {
+    setLeadDetailStatus(`Request failed: ${err.message}`, 'error');
+  } finally {
+    el.leadGeneratePromptBtn.disabled = false;
+  }
+}
+
+if (el.leadGeneratePromptBtn) {
+  el.leadGeneratePromptBtn.addEventListener('click', generateLeadPrompt);
+}
+
+async function callLead() {
+  const leadId = state.leads.selectedId;
+  if (!leadId) return;
+  el.leadCallBtn.disabled = true;
+  setLeadDetailStatus('Placing call…', 'info');
+  const payload = {
+    first_message: el.leadDetailFirstMessage.value,
+    system_prompt: el.leadDetailSystemPrompt.value,
+  };
+  try {
+    const resp = await fetch(`/leads/${leadId}/call`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await resp.json();
+    if (!resp.ok || data.error) {
+      const detail = data.error ? `[${data.error.stage}] ${data.error.kind}: ${data.error.detail}` : `HTTP ${resp.status}`;
+      setLeadDetailStatus(`Call failed: ${detail}`, 'error');
+      return;
+    }
+    state.leads.activeCallLeadId = leadId;
+    el.leadTranscriptMessages.innerHTML = '';
+    state.leads.monitorCallId = null;
+    const modeNote = data.demo_safe_mode ? ' (DEMO SAFE MODE → CALL_ME_NUMBER)' : '';
+    setLeadDetailStatus(`Call placed. SID: ${data.sid}${modeNote}`, 'ok');
+  } catch (err) {
+    setLeadDetailStatus(`Request failed: ${err.message}`, 'error');
+  } finally {
+    el.leadCallBtn.disabled = false;
+  }
+}
+
+if (el.leadCallBtn) {
+  el.leadCallBtn.addEventListener('click', callLead);
+}
+
+// Routes /ws/monitor events into the Campaigns lead transcript panel while a
+// lead call is the most recently placed one (see callLead() above) — reuses
+// the SAME socket/events as the Phone Outreach panel's handleMonitorEvent,
+// just a second, independent rendering target. When the call ends, a fresh
+// GET /leads (triggered a few seconds later, giving the background
+// classification task time to run) picks up the updated HOT/WARM/COLD
+// status + reasoning.
+function handleLeadMonitorEvent(callId, evt) {
+  if (!state.leads.activeCallLeadId) return;
+
+  if (state.leads.monitorCallId !== callId) {
+    state.leads.monitorCallId = callId;
+    el.leadTranscriptMessages.innerHTML = '';
+    state.leads.monitorSttPartial = null;
+    state.leads.monitorAgentToken = null;
+  }
+
+  switch (evt.type) {
+    case 'stt_partial': {
+      state.leads.monitorSttPartial = evt.text;
+      if (state.leads.monitorSttPartial) {
+        addOrUpdateTranscriptBubble(el.leadTranscriptMessages, 'user', state.leads.monitorSttPartial, true);
+      }
+      break;
+    }
+    case 'stt_final': {
+      state.leads.monitorSttPartial = null;
+      addOrUpdateTranscriptBubble(el.leadTranscriptMessages, 'user', evt.text || '', false);
+      break;
+    }
+    case 'agent_token': {
+      state.leads.monitorAgentToken = (state.leads.monitorAgentToken || '') + (evt.token || '');
+      addOrUpdateTranscriptBubble(el.leadTranscriptMessages, 'agent', state.leads.monitorAgentToken, true);
+      break;
+    }
+    case 'agent_done': {
+      state.leads.monitorAgentToken = null;
+      addOrUpdateTranscriptBubble(el.leadTranscriptMessages, 'agent', evt.text || '', false);
+      break;
+    }
+    case 'call_ended': {
+      setLeadDetailStatus('Call ended — classifying…', 'info');
+      // Give the server's background classification task a moment to run
+      // (Fireworks call + DB write), then refresh so the lead's status/
+      // reasoning shows up without the founder having to click anything.
+      setTimeout(loadLeads, 3000);
+      break;
+    }
+    case 'error': {
+      setLeadDetailStatus(`[${evt.stage}] ${evt.kind}: ${evt.detail}`, 'error');
+      break;
+    }
+    default:
+      break;
+  }
+}
+
 // ── Control Room layer navigation (Phase 3.6 UI redesign) ─────────────────
 // Switching layers only toggles a CSS class on the sidebar item + its
 // matching panel — no panel is ever removed from the DOM, so /ws/call,
@@ -1331,6 +1741,12 @@ function setActiveLayer(layer) {
     // Phone Outreach, since the Etapa A reorder (was layer '2' before).
     const dot = document.querySelector('.pipeline-item[data-layer="3"] .pipeline-dot');
     if (dot) dot.classList.remove('active-alert');
+  }
+  if (layer === '4') {
+    // Campaigns (Phase 4 Etapa C): refresh the leads table every time the
+    // founder comes back to this layer, same reasoning as layer 2's Profile
+    // Editor reload above.
+    loadLeads();
   }
 }
 

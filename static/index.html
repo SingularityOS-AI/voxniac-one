@@ -59,7 +59,7 @@
       <button class="pipeline-item" type="button" data-layer="4">
         <span class="pipeline-badge">4</span>
         <span class="pipeline-name">Campaigns</span>
-        <span class="soon-badge">SOON</span>
+        <span class="pipeline-dot"></span>
       </button>
     </div>
   </nav>
@@ -251,22 +251,132 @@
     </section>
 
     <!--
-      LAYER 4 — Campaigns (Etapa C builds this). Deliberately an honest
-      empty state, not a mock-up with fake metrics/sliders — nothing here
-      has a backend yet, so nothing here pretends to.
+      LAYER 4 — Campaigns (Etapa C, Phase 4). Lead import (Apollo-shaped
+      CSV), HOT/WARM/COLD pipeline table, per-lead prompt generation
+      (Fireworks gpt-oss-120b) and one-click calling through the SAME
+      /ws/twilio engine every other layer uses (DEMO_SAFE_MODE always dials
+      CALL_ME_NUMBER — leads never carry a real, dialable number).
     -->
     <section class="layer-panel" data-layer-panel="4">
       <div class="layer-panel-header">
         <h2 class="layer-panel-title">Campaigns</h2>
-        <span class="soon-badge">SOON</span>
       </div>
 
-      <div class="layer-placeholder">
-        <div class="layer-placeholder-title">Coming in the next phase</div>
-        <div class="layer-placeholder-text">
-          Lead import, HOT/WARM/COLD classification, per-lead prompt
-          generation and one-click calling land here in Fase 4. Nothing to
-          configure yet.
+      <div class="campaigns-toolbar">
+        <div class="campaigns-counters">
+          <div class="campaigns-counter hot">
+            <span class="campaigns-counter-label">HOT</span>
+            <span class="campaigns-counter-value" id="leadsCountHot">0</span>
+          </div>
+          <div class="campaigns-counter warm">
+            <span class="campaigns-counter-label">WARM</span>
+            <span class="campaigns-counter-value" id="leadsCountWarm">0</span>
+          </div>
+          <div class="campaigns-counter cold">
+            <span class="campaigns-counter-label">COLD</span>
+            <span class="campaigns-counter-value" id="leadsCountCold">0</span>
+          </div>
+        </div>
+        <div class="campaigns-toolbar-actions">
+          <div class="demo-safe-badge" id="demoSafeBadge">
+            <span class="demo-safe-dot"></span>
+            <span id="demoSafeBadgeText">DEMO SAFE MODE</span>
+          </div>
+          <label class="leads-import-btn" for="leadsImportInput">
+            Import CSV
+            <input type="file" id="leadsImportInput" accept=".csv,text/csv" hidden>
+          </label>
+        </div>
+      </div>
+      <div class="leads-import-status" id="leadsImportStatus"></div>
+
+      <div class="campaigns-grid">
+        <div class="leads-table-card">
+          <div class="leads-table-header">
+            <span class="field-label">Leads pipeline</span>
+            <span class="leads-table-count" id="leadsTableCount">0 leads</span>
+          </div>
+          <div class="leads-table-scroll">
+            <table class="leads-table">
+              <thead>
+                <tr>
+                  <th>Contact</th>
+                  <th>Company</th>
+                  <th>Industry</th>
+                  <th>Phone</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="leadsTableBody">
+                <tr class="leads-table-empty-row">
+                  <td colspan="5">No leads yet — import a CSV to get started.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="lead-detail-card" id="leadDetailCard">
+          <div class="lead-detail-header">
+            <span class="field-label">Lead intelligence</span>
+          </div>
+          <div class="lead-detail-empty" id="leadDetailEmpty">
+            Select a lead from the pipeline to see its details.
+          </div>
+          <div class="lead-detail-body" id="leadDetailBody" style="display:none;">
+            <div class="lead-detail-profile">
+              <div class="lead-detail-name" id="leadDetailName">—</div>
+              <div class="lead-detail-sub" id="leadDetailSub">—</div>
+            </div>
+
+            <div class="lead-detail-field-row">
+              <div>
+                <label class="field-label">Status</label>
+                <select id="leadDetailStatus">
+                  <option value="COLD">COLD</option>
+                  <option value="WARM">WARM</option>
+                  <option value="HOT">HOT</option>
+                </select>
+              </div>
+              <div>
+                <label class="field-label">Whale (🐋)</label>
+                <select id="leadDetailBallena">
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="field-label">Pain points</label>
+              <div class="lead-detail-pain-points" id="leadDetailPainPoints"></div>
+            </div>
+
+            <label class="field-label" for="leadDetailFirstMessage">First message</label>
+            <textarea id="leadDetailFirstMessage" class="profile-textarea" rows="3"
+                      placeholder="Generate a prompt, or write one manually…"></textarea>
+
+            <label class="field-label" for="leadDetailSystemPrompt">System prompt</label>
+            <textarea id="leadDetailSystemPrompt" class="profile-textarea profile-textarea-mono" rows="6"
+                      placeholder="Generate a prompt, or write one manually…"></textarea>
+
+            <div class="lead-detail-actions">
+              <button id="leadGeneratePromptBtn" class="lead-action-btn generate" type="button">Generate prompt</button>
+              <button id="leadSaveBtn" class="lead-action-btn save" type="button">Save</button>
+              <button id="leadCallBtn" class="lead-action-btn call" type="button">Call</button>
+            </div>
+            <div class="lead-detail-status" id="leadDetailStatusMsg"></div>
+
+            <div class="lead-classification" id="leadClassification" style="display:none;">
+              <span class="field-label">Last classification</span>
+              <div class="lead-classification-text" id="leadClassificationText"></div>
+            </div>
+
+            <div class="lead-transcript-panel">
+              <div class="lead-transcript-header">Live call transcript</div>
+              <div class="lead-transcript-messages" id="leadTranscriptMessages"></div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
