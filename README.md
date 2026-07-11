@@ -5,7 +5,7 @@
 
 [![AMD Instinct™ Accelerator](https://img.shields.io/badge/AMD-Instinct™-ED1C24?style=for-the-badge&logo=amd&logoColor=white)](https://www.amd.com/en/products/accelerators/instinct.html)
 [![Fireworks AI](https://img.shields.io/badge/Model-Fireworks_AI-blue?style=for-the-badge)](https://fireworks.ai/)
-[![License](https://img.shields.io/badge/License-Apache_2.0-green?style=for-the-badge)](LICENSE)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 
 ---
 
